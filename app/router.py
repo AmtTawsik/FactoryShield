@@ -1,4 +1,6 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, Response
+
+from app.core.database import check_database
 
 from app.modules.auth.controller import router as auth_router
 from app.modules.chat.controller import router as chat_router
@@ -12,8 +14,11 @@ api_router = APIRouter(prefix="/api/v1")
 
 
 @api_router.get("/health", tags=["health"])
-async def health() -> dict[str, str]:
-    return {"status": "ok"}
+async def health(response: Response) -> dict[str, str]:
+    if await check_database():
+        return {"status": "ok", "database": "ok"}
+    response.status_code = 503
+    return {"status": "degraded", "database": "unavailable"}
 
 
 api_router.include_router(auth_router)

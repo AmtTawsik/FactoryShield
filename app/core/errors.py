@@ -1,5 +1,10 @@
+import logging
+
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
+from sqlalchemy.exc import InterfaceError, OperationalError
+
+logger = logging.getLogger(__name__)
 
 
 class AppError(Exception):
@@ -36,5 +41,12 @@ async def app_error_handler(request: Request, exc: AppError) -> JSONResponse:
     return JSONResponse(status_code=exc.status_code, content={"detail": exc.message}, headers=headers)
 
 
+async def database_unavailable_handler(request: Request, exc: Exception) -> JSONResponse:
+    logger.error("Database unavailable on %s %s: %r", request.method, request.url.path, exc)
+    return JSONResponse(status_code=503, content={"detail": "Database is temporarily unavailable"})
+
+
 def register_exception_handlers(app: FastAPI) -> None:
     app.add_exception_handler(AppError, app_error_handler)
+    for error in (OperationalError, InterfaceError, ConnectionError, TimeoutError):
+        app.add_exception_handler(error, database_unavailable_handler)

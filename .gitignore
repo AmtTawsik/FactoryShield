@@ -24,6 +24,7 @@ out/
 *.tsbuildinfo
 next-env.d.ts
 .vercel/
+tests/
 
 # Logs
 *.log
