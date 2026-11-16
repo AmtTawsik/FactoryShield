@@ -5,6 +5,7 @@ description = "Safety and compliance management for garment factories in Banglad
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
+    "alembic>=1.20.1",
     "argon2-cffi>=25.1.0",
     "asyncpg>=0.32.0",
     "fastapi>=0.163.1",
