@@ -1,0 +1,21 @@
+[project]
+name = "factoryshield"
+version = "0.1.0"
+description = "Safety and compliance management for garment factories in Bangladesh"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "fastapi>=0.163.1",
+    "pydantic-settings>=2.16.3",
+    "uvicorn[standard]>=0.54.0",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+
+[dependency-groups]
+dev = [
+    "httpx>=0.28.1",
+    "pytest>=9.2.0",
+]
