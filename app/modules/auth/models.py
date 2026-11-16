@@ -8,7 +8,7 @@ from app.core.database import Base, TimestampMixin, string_enum
 
 class UserRole(StrEnum):
     ADMIN = "admin"
-    OFFICER = "officer"
+    STAFF = "staff"
 
 
 class User(TimestampMixin, Base):
@@ -20,6 +20,6 @@ class User(TimestampMixin, Base):
     email: Mapped[str] = mapped_column(String(255), unique=True)
     password_hash: Mapped[str] = mapped_column(String(255))
     role: Mapped[UserRole] = mapped_column(
-        string_enum(UserRole, "user_role"), default=UserRole.OFFICER, server_default=UserRole.OFFICER.value
+        string_enum(UserRole, "user_role"), default=UserRole.STAFF, server_default=UserRole.STAFF.value
     )
     is_active: Mapped[bool] = mapped_column(default=True, server_default=true())

@@ -36,12 +36,12 @@ class SeedSettings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", extra="ignore", hide_input_in_errors=True)
 
     seed_admin_password: str = Field(min_length=8)
-    seed_officer_password: str = Field(min_length=8)
+    seed_staff_password: str = Field(min_length=8)
 
 
 ADMIN = ("Farhana Rahman", "farhana.rahman@factoryshield.demo")
 
-OFFICERS = [
+STAFF_MEMBERS = [
     ("Mahmudul Hasan", "mahmudul.hasan@factoryshield.demo", ["FL-GZP-04512", "FL-GZP-07731"]),
     ("Nusrat Jahan", "nusrat.jahan@factoryshield.demo", ["FL-NGJ-02218"]),
     ("Arif Hossain", "arif.hossain@factoryshield.demo", ["FL-CTG-05107", "FL-DHK-03390", "FL-DHK-06044"]),
@@ -311,13 +311,13 @@ async def get_or_create_user(
     return user, True
 
 
-def build_factory_records(factory: Factory, data: dict, officer: User) -> list:
+def build_factory_records(factory: Factory, data: dict, staff_member: User) -> list:
     inspections = []
     for days_ago, category, score, findings in data["inspections"]:
         inspections.append(
             SafetyInspection(
                 factory=factory,
-                inspector=officer,
+                inspector=staff_member,
                 inspection_date=TODAY - timedelta(days=days_ago),
                 category=category,
                 status=InspectionStatus.SCHEDULED if score is None else InspectionStatus.COMPLETED,
@@ -332,7 +332,7 @@ def build_factory_records(factory: Factory, data: dict, officer: User) -> list:
         incidents.append(
             SafetyIncident(
                 factory=factory,
-                reported_by=officer,
+                reported_by=staff_member,
                 occurred_at=datetime.combine(occurred_on, time.fromisoformat(clock), tzinfo=DHAKA),
                 incident_type=incident_type,
                 severity=severity,
@@ -376,14 +376,14 @@ async def seed() -> None:
         )
         created["users"] += is_new
 
-        officer_by_license: dict[str, User] = {}
-        for full_name, email, licenses in OFFICERS:
-            officer, is_new = await get_or_create_user(
-                session, full_name, email, settings.seed_officer_password, UserRole.OFFICER
+        staff_by_license: dict[str, User] = {}
+        for full_name, email, licenses in STAFF_MEMBERS:
+            staff_member, is_new = await get_or_create_user(
+                session, full_name, email, settings.seed_staff_password, UserRole.STAFF
             )
             created["users"] += is_new
             for license_number in licenses:
-                officer_by_license[license_number] = officer
+                staff_by_license[license_number] = staff_member
 
         for data in FACTORIES:
             factory_fields = {key: value for key, value in data.items() if not isinstance(value, list)}
@@ -393,16 +393,16 @@ async def seed() -> None:
             if factory is None:
                 factory = Factory(**factory_fields)
                 session.add(factory)
-                officer = officer_by_license[data["license_number"]]
-                records = build_factory_records(factory, data, officer)
+                staff_member = staff_by_license[data["license_number"]]
+                records = build_factory_records(factory, data, staff_member)
                 session.add_all(records)
                 await session.flush()
                 created["factories"] += 1
                 created["records"] += len(records)
 
-            officer = officer_by_license[data["license_number"]]
-            if await session.get(FactoryMembership, (officer.id, factory.id)) is None:
-                session.add(FactoryMembership(user_id=officer.id, factory_id=factory.id))
+            staff_member = staff_by_license[data["license_number"]]
+            if await session.get(FactoryMembership, (staff_member.id, factory.id)) is None:
+                session.add(FactoryMembership(user_id=staff_member.id, factory_id=factory.id))
                 created["memberships"] += 1
 
         await session.commit()
