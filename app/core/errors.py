@@ -36,6 +36,13 @@ class ForbiddenError(AppError):
     message = "You do not have permission to perform this action"
 
 
+class InvalidDataError(AppError):
+    """Input is well-formed but breaks a business rule, e.g. an action linked to another factory's incident."""
+
+    status_code = 422
+    message = "Invalid data"
+
+
 async def app_error_handler(request: Request, exc: AppError) -> JSONResponse:
     headers = {"WWW-Authenticate": "Bearer"} if exc.status_code == 401 else None
     return JSONResponse(status_code=exc.status_code, content={"detail": exc.message}, headers=headers)
