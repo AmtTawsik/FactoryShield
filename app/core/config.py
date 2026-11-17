@@ -24,6 +24,17 @@ class Settings(BaseSettings):
     llm_max_retries: int = Field(default=1, ge=0, le=5)
     llm_system_prompt: str | None = None
 
+    # Any OpenAI-compatible /v1/embeddings service; the docker compose `embeddings` service by default.
+    embedding_base_url: str = "http://localhost:8091/v1"
+    embedding_api_key: SecretStr | None = None
+    embedding_model: str = "intfloat/multilingual-e5-small"
+    embedding_timeout_seconds: float = Field(default=30, gt=0)
+    embedding_batch_size: int = Field(default=32, ge=1, le=256)
+    # E5 models expect these prefixes; set both to empty for models that do not use them.
+    embedding_query_prefix: str = "query: "
+    embedding_passage_prefix: str = "passage: "
+    rag_min_score: float = Field(default=0.80, ge=0, le=1)
+
 
 @lru_cache
 def get_settings() -> Settings:
