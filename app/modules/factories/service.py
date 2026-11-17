@@ -1,4 +1,3 @@
-from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.errors import ConflictError, NotFoundError
@@ -56,9 +55,5 @@ class FactoryService:
         await self.session.commit()
 
     async def _commit(self, factory: Factory) -> None:
-        try:
-            await self.session.commit()
-        except IntegrityError:
-            await self.session.rollback()
-            raise ConflictError(DUPLICATE_LICENSE)
+        await self.session.commit()
         await self.session.refresh(factory)

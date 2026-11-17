@@ -3,14 +3,14 @@ from datetime import date, datetime
 from pydantic import AwareDatetime, BaseModel, ConfigDict, Field
 
 from app.core.pagination import PageParams
-from app.core.schemas import PatchModel
+from app.core.schemas import Id, PatchModel
 from app.modules.incidents.models import IncidentSeverity, IncidentStatus, IncidentType
 
 
 class IncidentCreate(BaseModel):
     model_config = ConfigDict(str_strip_whitespace=True)
 
-    factory_id: int
+    factory_id: Id
     occurred_at: AwareDatetime = Field(examples=["2026-11-10T10:40:00+06:00"])
     incident_type: IncidentType
     severity: IncidentSeverity
@@ -48,7 +48,7 @@ class IncidentResponse(BaseModel):
 
 
 class IncidentFilters(PageParams):
-    factory_id: int | None = None
+    factory_id: Id | None = None
     incident_type: IncidentType | None = None
     severity: IncidentSeverity | None = None
     status: IncidentStatus | None = None

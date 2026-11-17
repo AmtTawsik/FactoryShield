@@ -1,6 +1,14 @@
-from typing import ClassVar, Self
+from typing import Annotated, ClassVar, Self
 
-from pydantic import BaseModel, ConfigDict, model_validator
+from fastapi import Path
+from pydantic import BaseModel, ConfigDict, Field, model_validator
+
+# Primary and foreign keys are PostgreSQL `integer` columns. Bounding them here returns 422
+# instead of letting an out-of-range value reach the database.
+MAX_ID = 2_147_483_647
+
+Id = Annotated[int, Field(ge=1, le=MAX_ID)]
+IdPath = Annotated[int, Path(ge=1, le=MAX_ID)]
 
 
 class PatchModel(BaseModel):

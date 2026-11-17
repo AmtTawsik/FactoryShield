@@ -3,7 +3,7 @@ from datetime import date, datetime
 from pydantic import BaseModel, ConfigDict, Field, computed_field
 
 from app.core.pagination import PageParams
-from app.core.schemas import PatchModel
+from app.core.schemas import Id, PatchModel
 from app.core.time import today
 from app.modules.corrective_actions.models import ActionPriority, ActionStatus
 
@@ -11,9 +11,9 @@ from app.modules.corrective_actions.models import ActionPriority, ActionStatus
 class ActionCreate(BaseModel):
     model_config = ConfigDict(str_strip_whitespace=True)
 
-    factory_id: int
-    inspection_id: int | None = None
-    incident_id: int | None = None
+    factory_id: Id
+    inspection_id: Id | None = None
+    incident_id: Id | None = None
     title: str = Field(min_length=5, max_length=200, examples=["Refill expired extinguishers on floor 3"])
     description: str | None = Field(default=None, max_length=5000)
     priority: ActionPriority = ActionPriority.MEDIUM
@@ -25,8 +25,8 @@ class ActionCreate(BaseModel):
 class ActionUpdate(PatchModel):
     nullable_fields = frozenset({"inspection_id", "incident_id", "description"})
 
-    inspection_id: int | None = None
-    incident_id: int | None = None
+    inspection_id: Id | None = None
+    incident_id: Id | None = None
     title: str | None = Field(default=None, min_length=5, max_length=200)
     description: str | None = Field(default=None, max_length=5000)
     priority: ActionPriority | None = None
@@ -59,10 +59,10 @@ class ActionResponse(BaseModel):
 
 
 class ActionFilters(PageParams):
-    factory_id: int | None = None
+    factory_id: Id | None = None
     status: ActionStatus | None = None
     priority: ActionPriority | None = None
     overdue: bool | None = None
-    inspection_id: int | None = None
-    incident_id: int | None = None
+    inspection_id: Id | None = None
+    incident_id: Id | None = None
     search: str | None = Field(default=None, max_length=100, description="Title or assignee")

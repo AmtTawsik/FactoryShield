@@ -3,15 +3,15 @@ from datetime import date, datetime
 from pydantic import BaseModel, ConfigDict, Field
 
 from app.core.pagination import PageParams
-from app.core.schemas import PatchModel
+from app.core.schemas import Id, PatchModel
 from app.modules.inspections.models import InspectionCategory, InspectionStatus
 
 
 class InspectionCreate(BaseModel):
     model_config = ConfigDict(str_strip_whitespace=True)
 
-    factory_id: int
-    inspector_id: int | None = None
+    factory_id: Id
+    inspector_id: Id | None = None
     inspection_date: date
     category: InspectionCategory
     status: InspectionStatus = InspectionStatus.SCHEDULED
@@ -22,7 +22,7 @@ class InspectionCreate(BaseModel):
 class InspectionUpdate(PatchModel):
     nullable_fields = frozenset({"inspector_id", "score", "findings"})
 
-    inspector_id: int | None = None
+    inspector_id: Id | None = None
     inspection_date: date | None = None
     category: InspectionCategory | None = None
     status: InspectionStatus | None = None
@@ -46,7 +46,7 @@ class InspectionResponse(BaseModel):
 
 
 class InspectionFilters(PageParams):
-    factory_id: int | None = None
+    factory_id: Id | None = None
     category: InspectionCategory | None = None
     status: InspectionStatus | None = None
     date_from: date | None = None

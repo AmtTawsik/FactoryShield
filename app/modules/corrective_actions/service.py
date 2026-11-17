@@ -7,7 +7,7 @@ from app.modules.auth.service import FactoryScope
 from app.modules.corrective_actions.models import ActionStatus, CorrectiveAction
 from app.modules.corrective_actions.repository import ActionRepository
 from app.modules.corrective_actions.schemas import ActionCreate, ActionFilters, ActionResponse, ActionUpdate
-from app.modules.factories.repository import FactoryRepository
+from app.modules.factories.service import FactoryService
 from app.modules.incidents.repository import IncidentRepository
 from app.modules.inspections.repository import InspectionRepository
 
@@ -17,7 +17,7 @@ class ActionService:
         self,
         session: AsyncSession,
         actions: ActionRepository,
-        factories: FactoryRepository,
+        factories: FactoryService,
         inspections: InspectionRepository,
         incidents: IncidentRepository,
     ):
@@ -43,8 +43,7 @@ class ActionService:
         return action
 
     async def create(self, data: ActionCreate, scope: FactoryScope) -> CorrectiveAction:
-        if await self.factories.get(data.factory_id) is None or not scope.allows(data.factory_id):
-            raise NotFoundError("Factory not found")
+        await self.factories.get(data.factory_id, scope)
 
         action = CorrectiveAction(**data.model_dump())
         await self._check_links(action)

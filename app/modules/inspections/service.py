@@ -5,7 +5,7 @@ from app.core.pagination import Page
 from app.core.time import today
 from app.modules.auth.repository import UserRepository
 from app.modules.auth.service import FactoryScope
-from app.modules.factories.repository import FactoryRepository
+from app.modules.factories.service import FactoryService
 from app.modules.inspections.models import InspectionStatus, SafetyInspection
 from app.modules.inspections.repository import InspectionRepository
 from app.modules.inspections.schemas import (
@@ -21,7 +21,7 @@ class InspectionService:
         self,
         session: AsyncSession,
         inspections: InspectionRepository,
-        factories: FactoryRepository,
+        factories: FactoryService,
         users: UserRepository,
     ):
         self.session = session
@@ -45,8 +45,7 @@ class InspectionService:
         return inspection
 
     async def create(self, data: InspectionCreate, scope: FactoryScope) -> SafetyInspection:
-        if await self.factories.get(data.factory_id) is None or not scope.allows(data.factory_id):
-            raise NotFoundError("Factory not found")
+        await self.factories.get(data.factory_id, scope)
         await self._check_inspector(data.inspector_id)
 
         inspection = SafetyInspection(**data.model_dump())

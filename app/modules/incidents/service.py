@@ -5,14 +5,14 @@ from app.core.pagination import Page
 from app.core.time import now
 from app.modules.auth.models import User
 from app.modules.auth.service import FactoryScope
-from app.modules.factories.repository import FactoryRepository
+from app.modules.factories.service import FactoryService
 from app.modules.incidents.models import SafetyIncident
 from app.modules.incidents.repository import IncidentRepository
 from app.modules.incidents.schemas import IncidentCreate, IncidentFilters, IncidentResponse, IncidentUpdate
 
 
 class IncidentService:
-    def __init__(self, session: AsyncSession, incidents: IncidentRepository, factories: FactoryRepository):
+    def __init__(self, session: AsyncSession, incidents: IncidentRepository, factories: FactoryService):
         self.session = session
         self.incidents = incidents
         self.factories = factories
@@ -33,8 +33,7 @@ class IncidentService:
         return incident
 
     async def create(self, data: IncidentCreate, reporter: User, scope: FactoryScope) -> SafetyIncident:
-        if await self.factories.get(data.factory_id) is None or not scope.allows(data.factory_id):
-            raise NotFoundError("Factory not found")
+        await self.factories.get(data.factory_id, scope)
 
         incident = SafetyIncident(**data.model_dump(), reported_by_id=reporter.id)
         self._check_rules(incident)

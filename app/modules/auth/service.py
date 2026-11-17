@@ -1,6 +1,5 @@
 from dataclasses import dataclass
 
-from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import get_settings
@@ -48,11 +47,7 @@ class AuthService:
             role=UserRole.STAFF,
         )
         self.users.add(user)
-        try:
-            await self.session.commit()
-        except IntegrityError:
-            await self.session.rollback()
-            raise ConflictError("An account with this email already exists")
+        await self.session.commit()
         return user
 
     async def login(self, data: LoginRequest) -> TokenResponse:

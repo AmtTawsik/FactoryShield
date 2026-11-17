@@ -3,6 +3,7 @@ from typing import Annotated
 from fastapi import APIRouter, Query, status
 
 from app.core.pagination import Page
+from app.core.schemas import IdPath
 from app.modules.auth.dependencies import AdminUser, CurrentFactoryScope
 from app.modules.inspections.dependencies import InspectionServiceDep
 from app.modules.inspections.schemas import (
@@ -23,7 +24,7 @@ async def list_inspections(
 
 
 @router.get("/{inspection_id}", response_model=InspectionResponse)
-async def get_inspection(inspection_id: int, scope: CurrentFactoryScope, service: InspectionServiceDep):
+async def get_inspection(inspection_id: IdPath, scope: CurrentFactoryScope, service: InspectionServiceDep):
     return await service.get(inspection_id, scope)
 
 
@@ -36,7 +37,7 @@ async def create_inspection(
 
 @router.patch("/{inspection_id}", response_model=InspectionResponse)
 async def update_inspection(
-    inspection_id: int,
+    inspection_id: IdPath,
     data: InspectionUpdate,
     admin: AdminUser,
     scope: CurrentFactoryScope,
@@ -47,6 +48,6 @@ async def update_inspection(
 
 @router.delete("/{inspection_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_inspection(
-    inspection_id: int, admin: AdminUser, scope: CurrentFactoryScope, service: InspectionServiceDep
+    inspection_id: IdPath, admin: AdminUser, scope: CurrentFactoryScope, service: InspectionServiceDep
 ):
     await service.delete(inspection_id, scope)
