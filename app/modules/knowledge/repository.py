@@ -1,4 +1,4 @@
-from sqlalchemy import or_, select
+from sqlalchemy import delete, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.modules.knowledge.models import KnowledgeCategory, KnowledgeChunk, KnowledgeDocument
@@ -11,6 +11,12 @@ class KnowledgeRepository:
 
     def add(self, *objects: KnowledgeDocument | KnowledgeChunk) -> None:
         self.session.add_all(objects)
+
+    async def get_by_source_key(self, source_key: str) -> KnowledgeDocument | None:
+        return await self.session.scalar(select(KnowledgeDocument).where(KnowledgeDocument.source_key == source_key))
+
+    async def delete_chunks(self, document_id: int) -> None:
+        await self.session.execute(delete(KnowledgeChunk).where(KnowledgeChunk.document_id == document_id))
 
     async def search(
         self,

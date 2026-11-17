@@ -1,0 +1,43 @@
+# Documents loaded by `uv run python -m scripts.ingest_knowledge`.
+# `key` identifies a document across runs: re-running the script updates the document with the same key
+# instead of adding a copy. File paths are relative to this file. Licences are listed in SOURCES.md.
+
+[[documents]]
+key = "bd-labour-act-2006-chapter-6-safety"
+file = "documents/bd-labour-act-2006-chapter-6-safety-excerpts.md"
+title = "বাংলাদেশ শ্রম আইন, ২০০৬ — ষষ্ঠ অধ্যায় (নিরাপত্তা): ধারা ৬২, ৭২ ও ৭৮ক"
+source_authority = "Legislative and Parliamentary Affairs Division, Government of Bangladesh (Laws of Bangladesh)"
+source_url = "https://bdlaws.minlaw.gov.bd/act-952/chapter-1036.html"
+category = "labour_law"
+content_status = "official_verified"
+verified_on = 2026-11-17
+
+[[documents]]
+key = "us-29-cfr-1910-37-38-exit-routes"
+file = "documents/29-cfr-1910-37-exit-routes.pdf"
+title = "U.S. OSHA 29 CFR 1910.37 Exit routes and 1910.38 Emergency action plans (2025 edition pages)"
+source_authority = "U.S. Occupational Safety and Health Administration, published by the U.S. Government Publishing Office"
+source_url = "https://www.govinfo.gov/content/pkg/CFR-2025-title29-vol5/pdf/CFR-2025-title29-vol5-sec1910-37.pdf"
+category = "fire_safety"
+content_status = "general_guidance"
+verified_on = 2026-11-17
+
+[[documents]]
+key = "us-29-cfr-1910-157-fire-extinguishers"
+file = "documents/29-cfr-1910-157-portable-fire-extinguishers.pdf"
+title = "U.S. OSHA 29 CFR 1910.157 Portable fire extinguishers (2025 edition pages)"
+source_authority = "U.S. Occupational Safety and Health Administration, published by the U.S. Government Publishing Office"
+source_url = "https://www.govinfo.gov/content/pkg/CFR-2025-title29-vol5/pdf/CFR-2025-title29-vol5-sec1910-157.pdf"
+category = "fire_safety"
+content_status = "general_guidance"
+verified_on = 2026-11-17
+
+[[documents]]
+key = "us-29-cfr-1910-39-fire-prevention-plans"
+file = "documents/29-cfr-1910-39-fire-prevention-plans.txt"
+title = "U.S. OSHA 29 CFR 1910.39 Fire prevention plans"
+source_authority = "U.S. Occupational Safety and Health Administration (Electronic Code of Federal Regulations)"
+source_url = "https://www.ecfr.gov/current/title-29/section-1910.39"
+category = "fire_safety"
+content_status = "general_guidance"
+verified_on = 2026-11-17

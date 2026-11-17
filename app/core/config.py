@@ -33,6 +33,8 @@ class Settings(BaseSettings):
     # E5 models expect these prefixes; set both to empty for models that do not use them.
     embedding_query_prefix: str = "query: "
     embedding_passage_prefix: str = "passage: "
+    # Calibrated on the sample documents: related questions (Bangla and English) scored 0.811 or more,
+    # unrelated ones at most 0.787. Topic-adjacent questions can score above it; the prompt covers those.
     rag_min_score: float = Field(default=0.80, ge=0, le=1)
 
 

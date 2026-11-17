@@ -1,4 +1,5 @@
 from datetime import date, datetime
+from enum import StrEnum
 from typing import Self
 
 from pydantic import BaseModel, ConfigDict, Field, HttpUrl, model_validator
@@ -7,9 +8,16 @@ from app.core.schemas import Id
 from app.modules.knowledge.models import ContentStatus, KnowledgeCategory
 
 
+class IngestStatus(StrEnum):
+    CREATED = "created"
+    UPDATED = "updated"
+    UNCHANGED = "unchanged"
+
+
 class KnowledgeDocumentCreate(BaseModel):
     model_config = ConfigDict(str_strip_whitespace=True)
 
+    source_key: str = Field(pattern=r"^[a-z0-9][a-z0-9._-]{1,99}$", examples=["bd-labour-act-2006-chapter-6-safety"])
     title: str = Field(min_length=3, max_length=200)
     source_authority: str = Field(
         min_length=2, max_length=200, examples=["Department of Inspection for Factories and Establishments (DIFE)"]
@@ -33,6 +41,7 @@ class KnowledgeDocumentResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     id: int
+    source_key: str
     title: str
     source_authority: str
     source_url: str | None
@@ -41,6 +50,23 @@ class KnowledgeDocumentResponse(BaseModel):
     verified_on: date | None
     factory_id: int | None
     created_at: datetime
+
+
+class IngestResult(BaseModel):
+    document: KnowledgeDocumentResponse
+    status: IngestStatus
+    chunk_count: int
+
+
+class KnowledgeSource(BaseModel):
+    """A stored document an answer drew on; every field comes from the database, never from the model."""
+
+    document_id: int
+    title: str
+    source_authority: str
+    source_url: str | None
+    content_status: ContentStatus
+    verified_on: date | None
 
 
 class KnowledgeSearchResult(BaseModel):

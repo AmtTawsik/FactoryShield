@@ -1,6 +1,8 @@
 from app.core.time import today
 from app.modules.chat.repository import FactoryContextRepository
 from app.modules.factories.models import Factory
+from app.modules.knowledge.models import ContentStatus
+from app.modules.knowledge.schemas import KnowledgeSearchResult, KnowledgeSource
 
 RECENT_INSPECTIONS = 5
 
@@ -33,6 +35,63 @@ async def build_factory_context(factory: Factory, records: FactoryContextReposit
         "and individual corrective actions are not included.",
     ]
     return "\n".join(lines)
+
+
+def build_knowledge_context(results: list[KnowledgeSearchResult] | None) -> tuple[str, list[KnowledgeSource]]:
+    """Document search results for the latest message, numbered by document, and the documents behind them.
+
+    `None` means the search could not run. The sources come from the database, so the reply can only
+    point to documents that were really retrieved.
+    """
+    if results is None:
+        return (
+            "Document search is unavailable right now, so no documents were checked for the user's latest "
+            "message. If the question needs document knowledge, say the documents could not be searched at "
+            "the moment. Do not cite any document.",
+            [],
+        )
+    if not results:
+        return (
+            "Document search found no relevant information in the available documents for the user's latest "
+            "message. If the question needs document knowledge (laws, regulations or safety guidance), say "
+            "clearly that you could not find relevant information in the available documents. Do not cite "
+            "any document.",
+            [],
+        )
+
+    by_document: dict[int, list[KnowledgeSearchResult]] = {}
+    for result in results:
+        by_document.setdefault(result.document_id, []).append(result)
+
+    sources: list[KnowledgeSource] = []
+    lines = ["Document search results for the user's latest message (most relevant first):"]
+    for number, chunks in enumerate(by_document.values(), start=1):
+        document = chunks[0]
+        sources.append(
+            KnowledgeSource(
+                document_id=document.document_id,
+                title=document.title,
+                source_authority=document.source_authority,
+                source_url=document.source_url,
+                content_status=document.content_status,
+                verified_on=document.verified_on,
+            )
+        )
+        status = (
+            f"official text, checked on {document.verified_on}"
+            if document.content_status == ContentStatus.OFFICIAL_VERIFIED
+            else "general guidance, not a legal requirement in Bangladesh"
+        )
+        lines.append(f'[{number}] "{document.title}"')
+        link = f", {document.source_url}" if document.source_url else ""
+        lines.append(f"    Source: {document.source_authority}{link}")
+        lines.append(f"    Status: {status}")
+        lines += [f"    Excerpt: {chunk.content}" for chunk in sorted(chunks, key=lambda chunk: chunk.chunk_index)]
+    lines.append(
+        "These are the only documents available for this message. Cite them by number and exact title, "
+        'for example [1] "Title". Do not cite documents, sections or links that are not listed here.'
+    )
+    return "\n".join(lines), sources
 
 
 def build_factory_list(factories: list[Factory], total: int) -> str:

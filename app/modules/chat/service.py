@@ -5,12 +5,13 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.errors import NotFoundError
 from app.core.pagination import Page
 from app.core.time import now
+from app.integrations.embeddings.errors import EmbeddingUnavailableError
 from app.integrations.llm.client import LLMClient
 from app.integrations.llm.errors import LLMUnavailableError
 from app.integrations.llm.schemas import ChatMessage as LLMMessage
 from app.modules.auth.models import User
 from app.modules.auth.service import FactoryScope
-from app.modules.chat.context import build_factory_context, build_factory_list
+from app.modules.chat.context import build_factory_context, build_factory_list, build_knowledge_context
 from app.modules.chat.models import ChatMessage, Conversation, MessageRole
 from app.modules.chat.repository import ChatRepository, FactoryContextRepository
 from app.modules.chat.schemas import (
@@ -24,6 +25,8 @@ from app.modules.chat.schemas import (
 from app.modules.chat.tools import ChatTools, ToolContext
 from app.modules.factories.schemas import FactoryFilters
 from app.modules.factories.service import FactoryService
+from app.modules.knowledge.schemas import KnowledgeSource
+from app.modules.knowledge.service import KnowledgeService
 
 logger = logging.getLogger(__name__)
 
@@ -34,6 +37,8 @@ TITLE_LENGTH = 80
 MAX_TOOL_ROUNDS = 4
 MAX_TOOL_CALLS_PER_ROUND = 5
 FACTORY_LIST_LIMIT = 50
+# Document chunks given to the model per message.
+KNOWLEDGE_RESULTS = 5
 
 
 class ChatService:
@@ -44,12 +49,14 @@ class ChatService:
         records: FactoryContextRepository,
         factories: FactoryService,
         tools: ChatTools,
+        knowledge: KnowledgeService,
     ):
         self.session = session
         self.chats = chats
         self.records = records
         self.factories = factories
         self.tools = tools
+        self.knowledge = knowledge
 
     async def send(self, data: ChatRequest, user: User, scope: FactoryScope, llm: LLMClient) -> ChatResponse:
         if data.conversation_id is not None:
@@ -63,9 +70,10 @@ class ChatService:
             new_messages = [ChatMessage(role=item.role, content=item.content) for item in data.previous_messages]
 
         context = await self._context(conversation, scope)
+        knowledge, sources = await self._knowledge(data.message, conversation, scope)
         reply, tools_used = await self._answer(
             llm,
-            [context, *history, LLMMessage("user", data.message)],
+            [context, knowledge, *history, LLMMessage("user", data.message)],
             ToolContext(scope=scope, default_factory_id=conversation.factory_id),
         )
 
@@ -86,6 +94,7 @@ class ChatService:
             factory_id=conversation.factory_id,
             reply=reply,
             tools_used=tools_used,
+            sources=sources,
         )
 
     async def _answer(
@@ -118,6 +127,21 @@ class ChatService:
             return LLMMessage("system", await build_factory_context(factory, self.records))
         page = await self.factories.list(FactoryFilters(size=FACTORY_LIST_LIMIT), scope)
         return LLMMessage("system", build_factory_list(page.items, page.total))
+
+    async def _knowledge(
+        self, message: str, conversation: Conversation, scope: FactoryScope
+    ) -> tuple[LLMMessage, list[KnowledgeSource]]:
+        """Searches the documents for the latest message; a failed search leaves the chat working without them."""
+        if conversation.factory_id is not None:
+            # A factory conversation sees general documents and that factory's own, not other factories'.
+            scope = FactoryScope(factory_ids=frozenset({conversation.factory_id}))
+        try:
+            results = await self.knowledge.search(message, scope, limit=KNOWLEDGE_RESULTS)
+        except EmbeddingUnavailableError:
+            logger.warning("Document search unavailable; answering without documents")
+            results = None
+        text, sources = build_knowledge_context(results)
+        return LLMMessage("system", text), sources
 
     async def list(self, filters: ConversationFilters, user: User) -> Page[ConversationResponse]:
         items, total = await self.chats.list_conversations(user.id, filters)

@@ -31,6 +31,10 @@ class KnowledgeDocument(TimestampMixin, Base):
     __tablename__ = "knowledge_documents"
 
     id: Mapped[int] = mapped_column(primary_key=True)
+    # Stable key from the ingestion manifest; loading the same key again updates this row instead of adding one.
+    source_key: Mapped[str] = mapped_column(String(100), unique=True)
+    # SHA-256 of the embedding model and chunk texts; unchanged documents are not embedded again.
+    content_hash: Mapped[str] = mapped_column(String(64))
     title: Mapped[str] = mapped_column(String(200))
     source_authority: Mapped[str] = mapped_column(String(200))
     source_url: Mapped[str | None] = mapped_column(String(500))

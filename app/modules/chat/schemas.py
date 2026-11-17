@@ -6,6 +6,7 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 from app.core.pagination import PageParams
 from app.core.schemas import Id
 from app.modules.chat.models import MessageRole
+from app.modules.knowledge.schemas import KnowledgeSource
 
 MAX_MESSAGE_LENGTH = 4000
 MAX_PREVIOUS_MESSAGES = 20
@@ -45,6 +46,10 @@ class ChatResponse(BaseModel):
     factory_id: int | None
     reply: str
     tools_used: list[str] = Field(default_factory=list, description="Tools the assistant called for this answer")
+    sources: list[KnowledgeSource] = Field(
+        default_factory=list,
+        description="Documents found by the document search for this message, in the order given to the assistant",
+    )
 
 
 class MessageResponse(BaseModel):
