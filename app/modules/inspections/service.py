@@ -12,6 +12,7 @@ from app.modules.inspections.schemas import (
     InspectionCreate,
     InspectionFilters,
     InspectionResponse,
+    InspectionStats,
     InspectionUpdate,
 )
 
@@ -28,6 +29,10 @@ class InspectionService:
         self.inspections = inspections
         self.factories = factories
         self.users = users
+
+    async def statistics(self, factory_id: int, scope: FactoryScope) -> list[InspectionStats]:
+        await self.factories.get(factory_id, scope)
+        return await self.inspections.statistics(factory_id)
 
     async def list(self, filters: InspectionFilters, scope: FactoryScope) -> Page[InspectionResponse]:
         items, total = await self.inspections.list(filters, scope.factory_ids)

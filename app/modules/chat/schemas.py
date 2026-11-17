@@ -44,6 +44,7 @@ class ChatResponse(BaseModel):
     conversation_id: int
     factory_id: int | None
     reply: str
+    tools_used: list[str] = Field(default_factory=list, description="Tools the assistant called for this answer")
 
 
 class MessageResponse(BaseModel):

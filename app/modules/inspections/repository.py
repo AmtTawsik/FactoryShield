@@ -1,9 +1,9 @@
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.pagination import paginate
 from app.modules.inspections.models import SafetyInspection
-from app.modules.inspections.schemas import InspectionFilters
+from app.modules.inspections.schemas import InspectionFilters, InspectionStats
 
 
 class InspectionRepository:
@@ -12,6 +12,21 @@ class InspectionRepository:
 
     async def get(self, inspection_id: int) -> SafetyInspection | None:
         return await self.session.get(SafetyInspection, inspection_id)
+
+    async def statistics(self, factory_id: int) -> list[InspectionStats]:
+        query = (
+            select(
+                SafetyInspection.category,
+                SafetyInspection.status,
+                func.count().label("count"),
+                func.round(func.avg(SafetyInspection.score), 1).label("average_score"),
+                func.min(SafetyInspection.score).label("lowest_score"),
+            )
+            .where(SafetyInspection.factory_id == factory_id)
+            .group_by(SafetyInspection.category, SafetyInspection.status)
+            .order_by(SafetyInspection.category, SafetyInspection.status)
+        )
+        return [InspectionStats.model_validate(row) for row in await self.session.execute(query)]
 
     async def list(
         self, filters: InspectionFilters, factory_ids: frozenset[int] | None

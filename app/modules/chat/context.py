@@ -20,14 +20,27 @@ async def build_factory_context(factory: Factory, records: FactoryContextReposit
 
     lines = [
         f"Factory records from the FactoryShield database (as of {on_date}):",
-        f"- Factory: {factory.name}, licence {factory.license_number}, {factory.district} district; "
+        f"- Factory ID {factory.id}: {factory.name}, licence {factory.license_number}, "
+        f"{factory.district} district; "
         f"{factory.worker_count} workers, {factory.floor_count} floors.",
         f"- Latest completed inspections (up to {RECENT_INSPECTIONS}):",
         *inspection_lines,
         f"- Scheduled inspections: {scheduled}",
         f"- Incidents not yet closed: {unclosed} (high or critical: {serious})",
         f"- Corrective actions not completed: {pending} (overdue: {overdue})",
-        "These are the only records available in this conversation. Inspection findings, incident details "
+        "Use the tools for inspection details, overdue corrective actions and recent incidents. "
+        "Without tool results, these are the only records available. Inspection findings, incident details "
         "and individual corrective actions are not included.",
     ]
+    return "\n".join(lines)
+
+
+def build_factory_list(factories: list[Factory], total: int) -> str:
+    """Factories the user may ask about in a conversation that is not tied to one factory."""
+    if not factories:
+        return "This user has no factories assigned, so no factory records are available."
+    lines = ["Factories this user can access (use the ID in tool calls):"]
+    lines += [f"- ID {factory.id}: {factory.name} ({factory.district})" for factory in factories]
+    if total > len(factories):
+        lines.append(f"- ... and {total - len(factories)} more")
     return "\n".join(lines)

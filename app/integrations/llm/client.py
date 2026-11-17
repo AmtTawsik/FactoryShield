@@ -4,7 +4,7 @@ from app.core.config import get_settings
 from app.integrations.llm.errors import LLMNotConfiguredError
 from app.integrations.llm.openai_compatible import OpenAICompatibleProvider
 from app.integrations.llm.prompts import SYSTEM_PROMPT
-from app.integrations.llm.schemas import ChatMessage, LLMProvider
+from app.integrations.llm.schemas import ChatMessage, LLMProvider, LLMResponse, ToolDefinition
 
 
 class LLMClient:
@@ -14,8 +14,8 @@ class LLMClient:
         self.provider = provider
         self.system_prompt = system_prompt
 
-    async def reply(self, messages: list[ChatMessage]) -> str:
-        return await self.provider.complete([ChatMessage("system", self.system_prompt), *messages])
+    async def complete(self, messages: list[ChatMessage], tools: tuple[ToolDefinition, ...] = ()) -> LLMResponse:
+        return await self.provider.complete([ChatMessage("system", self.system_prompt), *messages], tools)
 
 
 @lru_cache

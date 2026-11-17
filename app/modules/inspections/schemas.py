@@ -51,3 +51,15 @@ class InspectionFilters(PageParams):
     status: InspectionStatus | None = None
     date_from: date | None = None
     date_to: date | None = None
+
+
+class InspectionStats(BaseModel):
+    """Inspection counts and scores for one category and status of a factory."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    category: InspectionCategory
+    status: InspectionStatus
+    count: int
+    average_score: float | None
+    lowest_score: int | None

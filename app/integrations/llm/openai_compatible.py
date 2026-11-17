@@ -4,7 +4,7 @@ import openai
 from openai import AsyncOpenAI
 
 from app.integrations.llm.errors import LLMTimeoutError, LLMUnavailableError
-from app.integrations.llm.schemas import ChatMessage
+from app.integrations.llm.schemas import ChatMessage, LLMResponse, ToolCall, ToolDefinition
 
 logger = logging.getLogger(__name__)
 
@@ -31,12 +31,12 @@ class OpenAICompatibleProvider:
             http_client=http_client,
         )
 
-    async def complete(self, messages: list[ChatMessage]) -> str:
+    async def complete(self, messages: list[ChatMessage], tools: tuple[ToolDefinition, ...] = ()) -> LLMResponse:
+        request = {"model": self.model, "messages": [_to_api_message(message) for message in messages]}
+        if tools:
+            request["tools"] = [_to_api_tool(tool) for tool in tools]
         try:
-            response = await self._client.chat.completions.create(
-                model=self.model,
-                messages=[{"role": message.role, "content": message.content} for message in messages],
-            )
+            response = await self._client.chat.completions.create(**request)
         except openai.APITimeoutError as exc:
             logger.warning("LLM request timed out (model %s)", self.model)
             raise LLMTimeoutError() from exc
@@ -47,8 +47,40 @@ class OpenAICompatibleProvider:
             logger.error("LLM provider error (model %s): %s", self.model, exc)
             raise LLMUnavailableError() from exc
 
-        content = response.choices[0].message.content if response.choices else None
-        if not content or not content.strip():
+        message = response.choices[0].message if response.choices else None
+        content = (message.content or "").strip() if message else ""
+        tool_calls = _read_tool_calls(message)
+        if not content and not tool_calls:
             logger.error("LLM returned an empty reply (model %s)", self.model)
             raise LLMUnavailableError()
-        return content.strip()
+        return LLMResponse(content=content or None, tool_calls=tool_calls)
+
+
+def _to_api_message(message: ChatMessage) -> dict:
+    data = {"role": message.role, "content": message.content}
+    if message.tool_calls:
+        data["tool_calls"] = [
+            {"id": call.id, "type": "function", "function": {"name": call.name, "arguments": call.arguments}}
+            for call in message.tool_calls
+        ]
+    if message.tool_call_id:
+        data["tool_call_id"] = message.tool_call_id
+    return data
+
+
+def _to_api_tool(tool: ToolDefinition) -> dict:
+    return {
+        "type": "function",
+        "function": {"name": tool.name, "description": tool.description, "parameters": tool.parameters},
+    }
+
+
+def _read_tool_calls(message) -> tuple[ToolCall, ...]:
+    calls = []
+    for index, call in enumerate(getattr(message, "tool_calls", None) or []):
+        function = getattr(call, "function", None)
+        if function is None:
+            continue
+        # Some providers leave the id empty; the tool result must still point to its call.
+        calls.append(ToolCall(id=call.id or f"call_{index}", name=function.name, arguments=function.arguments or "{}"))
+    return tuple(calls)
