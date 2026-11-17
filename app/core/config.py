@@ -1,6 +1,6 @@
 from functools import lru_cache
 
-from pydantic import Field, SecretStr
+from pydantic import EmailStr, Field, SecretStr, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -36,6 +36,14 @@ class Settings(BaseSettings):
     # Calibrated on the sample documents: related questions (Bangla and English) scored 0.811 or more,
     # unrelated ones at most 0.787. Topic-adjacent questions can score above it; the prompt covers those.
     rag_min_score: float = Field(default=0.80, ge=0, le=1)
+
+    # The MCP stdio server runs on the local machine as this existing, active user (roles and factory scope apply).
+    mcp_stdio_user_email: EmailStr | None = None
+
+    @field_validator("mcp_stdio_user_email", mode="before")
+    @classmethod
+    def blank_is_unset(cls, value: object) -> object:
+        return None if isinstance(value, str) and not value.strip() else value
 
 
 @lru_cache

@@ -123,8 +123,8 @@ class ChatTools:
         self.actions = actions
         self.incidents = incidents
         self._tools = {
-            "get_factory_inspection_summary": _Tool(InspectionSummaryArgs, self._inspection_summary),
-            "get_overdue_corrective_actions": _Tool(OverdueActionsArgs, self._overdue_actions),
+            "get_factory_inspection_summary": _Tool(InspectionSummaryArgs, self.inspection_summary),
+            "get_overdue_corrective_actions": _Tool(OverdueActionsArgs, self.overdue_actions),
             "search_recent_safety_incidents": _Tool(IncidentSearchArgs, self._recent_incidents),
         }
 
@@ -153,7 +153,7 @@ class ChatTools:
             # Same answer for a missing factory and one outside the user's scope.
             return {"error": exc.message}
 
-    async def _inspection_summary(self, args: InspectionSummaryArgs, context: ToolContext) -> dict:
+    async def inspection_summary(self, args: InspectionSummaryArgs, context: ToolContext) -> dict:
         factory_id = args.factory_id or context.default_factory_id
         if factory_id is None:
             return {"error": "factory_id is required in a conversation without a factory"}
@@ -181,7 +181,7 @@ class ChatTools:
             "scheduled": [{"date": item.inspection_date, "category": item.category} for item in scheduled.items],
         }
 
-    async def _overdue_actions(self, args: OverdueActionsArgs, context: ToolContext) -> dict:
+    async def overdue_actions(self, args: OverdueActionsArgs, context: ToolContext) -> dict:
         factory_id = args.factory_id or context.default_factory_id
         if factory_id is not None:
             await self.factories.get(factory_id, context.scope)

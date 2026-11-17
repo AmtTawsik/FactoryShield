@@ -1,6 +1,7 @@
 from typing import Annotated
 
 from fastapi import Depends
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import get_settings
 from app.core.dependencies import DbSession
@@ -17,13 +18,20 @@ from app.modules.knowledge.repository import KnowledgeRepository
 from app.modules.knowledge.service import KnowledgeService
 
 
+def get_chat_tools(session: AsyncSession) -> ChatTools:
+    return ChatTools(
+        get_factory_service(session),
+        get_inspection_service(session),
+        get_action_service(session),
+        get_incident_service(session),
+    )
+
+
 def get_chat_service(
     session: DbSession, embeddings: Annotated[EmbeddingClient, Depends(get_embedding_client)]
 ) -> ChatService:
-    factories = get_factory_service(session)
-    tools = ChatTools(
-        factories, get_inspection_service(session), get_action_service(session), get_incident_service(session)
-    )
+    tools = get_chat_tools(session)
+    factories = tools.factories
     knowledge = KnowledgeService(
         session, KnowledgeRepository(session), factories, embeddings, get_settings().rag_min_score
     )
