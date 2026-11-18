@@ -1,0 +1,28 @@
+# Secrets and local environments never go into the image
+.env
+.env.*
+!.env.example
+.venv/
+venv/
+
+# Version control, tests and caches
+.git/
+.gitignore
+tests/
+**/__pycache__/
+**/*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Editors and OS files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Frontend (built and deployed separately)
+frontend/
+node_modules/

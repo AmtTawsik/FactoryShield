@@ -1,5 +1,15 @@
 name: factoryshield
 
+# Settings shared by the API and the one-off migration container. Values come from .env (never committed);
+# the two URLs below replace the host-side ones from .env so the containers talk over the compose network.
+x-backend: &backend
+  build: .
+  image: factoryshield-api:local
+  env_file: .env
+  environment:
+    DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
+    EMBEDDING_BASE_URL: http://embeddings:80/v1
+
 services:
   db:
     image: pgvector/pgvector:pg16
@@ -9,7 +19,8 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
       POSTGRES_DB: ${POSTGRES_DB:?Set POSTGRES_DB in .env}
     ports:
-      - "${POSTGRES_PORT:-5440}:5432"
+      # Published on localhost only, for running the API and tests outside Docker.
+      - "127.0.0.1:${POSTGRES_PORT:-5440}:5432"
     volumes:
       - factoryshield_postgres_data:/var/lib/postgresql/data
     healthcheck:
@@ -17,15 +28,58 @@ services:
       interval: 5s
       timeout: 5s
       retries: 10
+    restart: unless-stopped
 
   embeddings:
     image: ghcr.io/huggingface/text-embeddings-inference:cpu-1.9.4
     container_name: factoryshield-embeddings
     command: ["--model-id", "${EMBEDDING_MODEL:-intfloat/multilingual-e5-small}"]
     ports:
-      - "${EMBEDDING_PORT:-8091}:80"
+      - "127.0.0.1:${EMBEDDING_PORT:-8091}:80"
     volumes:
       - factoryshield_embedding_models:/data
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:80/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      # The first start downloads the model (about 500 MB, several minutes on a slow connection); later starts
+      # load it from the volume. Checks still run during this period, so it turns healthy as soon as it is ready.
+      start_period: 1800s
+    restart: unless-stopped
+
+  migrate:
+    <<: *backend
+    container_name: factoryshield-migrate
+    command: ["alembic", "upgrade", "head"]
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      disable: true
+    restart: "no"
+
+  api:
+    <<: *backend
+    container_name: factoryshield-api
+    ports:
+      - "${API_PORT:-8000}:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+      # Not waiting for "healthy": the API starts while the model loads; until then chat answers without
+      # documents and ingestion reports the service as unavailable.
+      embeddings:
+        condition: service_started
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/v1/health', timeout=4)"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+    restart: unless-stopped
 
 volumes:
   factoryshield_postgres_data:
