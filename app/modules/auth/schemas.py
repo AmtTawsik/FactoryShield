@@ -1,4 +1,6 @@
-from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
+from typing import Self
+
+from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator, model_validator
 
 from app.modules.auth.models import UserRole
 
@@ -32,6 +34,19 @@ class LoginRequest(BaseModel):
     @classmethod
     def lowercase_email(cls, value: str) -> str:
         return value.lower()
+
+
+class ChangePasswordRequest(BaseModel):
+    current_password: str = Field(min_length=1, max_length=128)
+    new_password: str = Field(min_length=8, max_length=128)
+
+    _new_password = field_validator("new_password")(check_password)
+
+    @model_validator(mode="after")
+    def different_password(self) -> Self:
+        if self.new_password == self.current_password:
+            raise ValueError("The new password must be different from the current one")
+        return self
 
 
 class TokenResponse(BaseModel):

@@ -3,11 +3,11 @@ from dataclasses import dataclass
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import get_settings
-from app.core.errors import ConflictError, NotFoundError, UnauthorizedError
+from app.core.errors import ConflictError, InvalidDataError, NotFoundError, UnauthorizedError
 from app.core.security import create_access_token, hash_password, verify_password
 from app.modules.auth.models import User, UserRole
 from app.modules.auth.repository import UserRepository
-from app.modules.auth.schemas import LoginRequest, RegisterRequest, TokenResponse
+from app.modules.auth.schemas import ChangePasswordRequest, LoginRequest, RegisterRequest, TokenResponse
 
 INVALID_LOGIN_MESSAGE = "Invalid email or password"
 
@@ -60,6 +60,13 @@ class AuthService:
 
         expire_minutes = get_settings().jwt_expire_minutes
         return TokenResponse(access_token=create_access_token(user.id), expires_in=expire_minutes * 60)
+
+    async def change_password(self, user: User, data: ChangePasswordRequest) -> None:
+        # Tokens issued before the change stay valid until they expire (owner decision, D-33).
+        if not verify_password(data.current_password, user.password_hash):
+            raise InvalidDataError("Current password is incorrect")
+        user.password_hash = hash_password(data.new_password)
+        await self.session.commit()
 
     async def get_active_user(self, user_id: int) -> User:
         user = await self.users.get_by_id(user_id)

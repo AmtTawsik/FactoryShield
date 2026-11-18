@@ -57,8 +57,8 @@ class ActionService:
         action = await self.get(action_id, scope)
         for field, value in data.changes().items():
             setattr(action, field, value)
-        await self._check_links(action)
         self._sync_completed_at(action)
+        await self._check_links(action)
         await self.session.commit()
         await self.session.refresh(action)
         return action
