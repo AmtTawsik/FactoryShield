@@ -2,6 +2,7 @@
 
 import { FileText, UploadCloud } from "lucide-react";
 import { useRef, useState } from "react";
+import { useSession } from "@/components/shell/session";
 import { FormDialog } from "@/components/ui/dialog";
 import { Field, Input, Select } from "@/components/ui/form";
 import { InlineAlert } from "@/components/ui/states";
@@ -38,7 +39,8 @@ function formatSize(bytes: number) {
 }
 
 export function UploadDialog({ onClose }: { onClose: () => void }) {
-  const factories = useAllFactories();
+  const { isSuperAdmin } = useSession();
+  const factories = useAllFactories(!isSuperAdmin);
   const inputRef = useRef<HTMLInputElement>(null);
   const [file, setFile] = useState<File | null>(null);
   const [dragging, setDragging] = useState(false);
@@ -105,8 +107,12 @@ export function UploadDialog({ onClose }: { onClose: () => void }) {
     <FormDialog
       open
       onClose={onClose}
-      title="Upload document"
-      description="The text is split into passages and indexed so the AI Assistant can cite it."
+      title={isSuperAdmin ? "Add to the shared library" : "Upload document"}
+      description={
+        isSuperAdmin
+          ? "Every organization will see this document, and the AI Assistant can cite it for all of them."
+          : "Only your organization sees it. The text is indexed so the AI Assistant can cite it."
+      }
       onSubmit={submit}
       submitLabel={saving ? "Uploading and indexing…" : "Upload"}
       saving={saving}
@@ -181,14 +187,16 @@ export function UploadDialog({ onClose }: { onClose: () => void }) {
             placeholder="Choose a category"
           />
         </Field>
-        <Field label="Applies to" error={fieldErrors.factory_id}>
-          <Select
-            value={form.factory_id}
-            onChange={(event) => set("factory_id", event.target.value)}
-            options={factories.options}
-            placeholder="All factories (general)"
-          />
-        </Field>
+        {!isSuperAdmin && (
+          <Field label="Applies to" error={fieldErrors.factory_id}>
+            <Select
+              value={form.factory_id}
+              onChange={(event) => set("factory_id", event.target.value)}
+              options={factories.options}
+              placeholder="Whole organization"
+            />
+          </Field>
+        )}
         <Field label="Content type" required error={fieldErrors.content_status}>
           <Select
             value={form.content_status}

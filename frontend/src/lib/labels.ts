@@ -85,6 +85,7 @@ export const CONTENT_STATUS: Record<ContentStatus, string> = {
 };
 
 export const USER_ROLE: Record<UserRole, string> = {
+  super_admin: "Platform admin",
   admin: "Admin",
   staff: "Staff · view only",
 };
@@ -99,7 +100,8 @@ export const OPTIONS = {
   actionStatus: options(ACTION_STATUS),
   knowledgeCategory: options(KNOWLEDGE_CATEGORY),
   contentStatus: options(CONTENT_STATUS),
-  userRole: options(USER_ROLE),
+  /** Roles an organization admin can give: never the platform role. */
+  userRole: options(USER_ROLE).filter((option) => option.value !== "super_admin"),
 };
 
 export const SEVERITY_TONE: Record<IncidentSeverity, Tone> = {

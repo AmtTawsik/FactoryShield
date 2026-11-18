@@ -30,10 +30,10 @@ class FactoryService:
             raise NotFoundError("Factory not found")
         return factory
 
-    async def create(self, data: FactoryCreate) -> Factory:
-        if await self.factories.get_by_license(data.license_number):
+    async def create(self, data: FactoryCreate, scope: FactoryScope) -> Factory:
+        if await self.factories.get_by_license(data.license_number, scope.organization_id):
             raise ConflictError(DUPLICATE_LICENSE)
-        factory = Factory(**data.model_dump())
+        factory = Factory(**data.model_dump(), organization_id=scope.organization_id)
         self.factories.add(factory)
         await self._commit(factory)
         return factory
@@ -42,7 +42,11 @@ class FactoryService:
         factory = await self.get(factory_id, scope)
         changes = data.changes()
         new_license = changes.get("license_number")
-        if new_license and new_license != factory.license_number and await self.factories.get_by_license(new_license):
+        if (
+            new_license
+            and new_license != factory.license_number
+            and await self.factories.get_by_license(new_license, factory.organization_id)
+        ):
             raise ConflictError(DUPLICATE_LICENSE)
         for field, value in changes.items():
             setattr(factory, field, value)

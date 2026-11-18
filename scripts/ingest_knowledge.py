@@ -17,7 +17,7 @@ from app.core.config import get_settings
 from app.core.database import SessionLocal, engine
 from app.integrations.embeddings.client import EmbeddingClient, get_embedding_client
 from app.integrations.embeddings.errors import EmbeddingUnavailableError
-from app.modules.auth.service import FactoryScope
+from app.modules.auth.service import PLATFORM_SCOPE
 from app.modules.factories.repository import FactoryRepository
 from app.modules.factories.service import FactoryService
 from app.modules.knowledge.ingestion import IngestionError, ingest_prepared, load_manifest, prepare
@@ -25,8 +25,7 @@ from app.modules.knowledge.repository import KnowledgeRepository
 from app.modules.knowledge.service import KnowledgeService
 
 DEFAULT_MANIFEST = Path(__file__).resolve().parents[1] / "knowledge" / "manifest.toml"
-# The script runs with operator rights: it may load general documents and documents for any factory.
-ALL_FACTORIES = FactoryScope(factory_ids=None)
+# The manifest documents form the shared library that every organization sees.
 
 
 async def ingest(manifest: Path, embeddings: EmbeddingClient) -> int:
@@ -53,7 +52,7 @@ async def ingest(manifest: Path, embeddings: EmbeddingClient) -> int:
             get_settings().rag_min_score,
         )
         try:
-            results = await ingest_prepared(documents, service, ALL_FACTORIES)
+            results = await ingest_prepared(documents, service, PLATFORM_SCOPE)
         except EmbeddingUnavailableError:
             print(
                 f"error: the embedding service at {get_settings().embedding_base_url} is not reachable. "

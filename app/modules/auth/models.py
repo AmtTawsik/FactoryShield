@@ -1,19 +1,25 @@
 from enum import StrEnum
 
-from sqlalchemy import CheckConstraint, String, true
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy import CheckConstraint, ForeignKey, String, true
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base, TimestampMixin, string_enum
+from app.modules.organizations.models import Organization
 
 
 class UserRole(StrEnum):
+    SUPER_ADMIN = "super_admin"
     ADMIN = "admin"
     STAFF = "staff"
 
 
 class User(TimestampMixin, Base):
     __tablename__ = "users"
-    __table_args__ = (CheckConstraint("email = lower(email)", name="email_lowercase"),)
+    __table_args__ = (
+        CheckConstraint("email = lower(email)", name="email_lowercase"),
+        # The platform's super admins belong to no organization; every other user belongs to exactly one.
+        CheckConstraint("(role = 'super_admin') = (organization_id IS NULL)", name="organization_matches_role"),
+    )
 
     id: Mapped[int] = mapped_column(primary_key=True)
     full_name: Mapped[str] = mapped_column(String(120))
@@ -23,3 +29,7 @@ class User(TimestampMixin, Base):
         string_enum(UserRole, "user_role"), default=UserRole.STAFF, server_default=UserRole.STAFF.value
     )
     is_active: Mapped[bool] = mapped_column(default=True, server_default=true())
+    organization_id: Mapped[int | None] = mapped_column(ForeignKey("organizations.id"), index=True)
+
+    # Loaded with the user: every request checks that the organization is active.
+    organization: Mapped[Organization | None] = relationship(lazy="joined")

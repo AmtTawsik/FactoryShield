@@ -10,6 +10,7 @@ from app.modules.factories.controller import router as factories_router
 from app.modules.incidents.controller import router as incidents_router
 from app.modules.inspections.controller import router as inspections_router
 from app.modules.knowledge.controller import router as knowledge_router
+from app.modules.organizations.controller import router as organizations_router
 from app.modules.users.controller import router as users_router
 
 api_router = APIRouter(prefix="/api/v1")
@@ -32,3 +33,4 @@ api_router.include_router(chat_router)
 api_router.include_router(knowledge_router)
 api_router.include_router(dashboard_router)
 api_router.include_router(users_router)
+api_router.include_router(organizations_router)

@@ -21,3 +21,11 @@ export function sessionCookieOptions(maxAge: number) {
     maxAge,
   };
 }
+
+type CookieJar = { set: (name: string, value: string, options: ReturnType<typeof sessionCookieOptions>) => void };
+
+/** Stores the API token (httpOnly) and its expiry time (readable by the page). */
+export function setSessionCookies(cookies: CookieJar, token: { access_token: string; expires_in: number }) {
+  cookies.set(SESSION_COOKIE, token.access_token, sessionCookieOptions(token.expires_in));
+  cookies.set(EXPIRES_COOKIE, String(Date.now() + token.expires_in * 1000), expiresCookieOptions(token.expires_in));
+}

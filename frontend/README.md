@@ -9,6 +9,7 @@ The application includes the following pages:
 | Path | Description | Access |
 |---|---|---|
 | `/login` | Sign-in page | All users |
+| `/register` | Company sign-up: creates an organization and makes the person its admin | Signed-out visitors |
 | `/` | Dashboard with overall statistics, inspection score trends, incidents by severity, overdue actions, and upcoming inspections | Signed-in users |
 | `/factories`, `/factories/[id]` | Factory list and individual factory details | Signed-in users; editing is restricted to admins |
 | `/inspections` | Safety inspection records | Signed-in users; changes are restricted to admins |
@@ -18,8 +19,11 @@ The application includes the following pages:
 | `/assistant` | AI assistant with chat and conversation history | Signed-in users |
 | `/users` | User management | Admins only |
 | `/account` | Personal profile and password settings | Signed-in users |
+| `/organizations` | Organizations: create, rename, deactivate, add an admin | Platform administrator only |
 
-Staff members can only view factories assigned to them. Administrative actions are available only to admins, and the API applies the same permission checks on the backend.
+Every user belongs to one organization and sees only its records. Staff members can only view factories assigned to them. Administrative actions are available only to admins, and the API applies the same permission checks on the backend.
+
+The platform administrator has a separate menu (Organizations, Shared library, My account) and is sent to Organizations from any other page, because they cannot see organization records.
 
 ## API integration and authentication
 

@@ -28,7 +28,7 @@ class KnowledgeDocumentMetadata(BaseModel):
     category: KnowledgeCategory
     content_status: ContentStatus = ContentStatus.GENERAL_GUIDANCE
     verified_on: date | None = None
-    factory_id: Id | None = Field(default=None, description="Set only for knowledge that belongs to one factory")
+    factory_id: Id | None = Field(default=None, description="Set only for a document of one of your factories")
 
     @model_validator(mode="after")
     def official_needs_source(self) -> Self:
@@ -54,6 +54,7 @@ class KnowledgeDocumentResponse(BaseModel):
     category: KnowledgeCategory
     content_status: ContentStatus
     verified_on: date | None
+    organization_id: int | None = Field(description="None: shared library document")
     factory_id: int | None
     created_at: datetime
 
@@ -68,6 +69,7 @@ class KnowledgeDocumentFilters(PageParams):
     category: KnowledgeCategory | None = None
     content_status: ContentStatus | None = None
     factory_id: Id | None = Field(default=None, description="Documents of this factory only")
+    shared: bool | None = Field(default=None, description="true: shared library only; false: your organization's only")
 
 
 class IngestResult(BaseModel):

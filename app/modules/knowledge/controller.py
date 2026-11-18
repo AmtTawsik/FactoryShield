@@ -4,7 +4,7 @@ from fastapi import APIRouter, Form, Query, UploadFile, status
 
 from app.core.pagination import Page
 from app.core.schemas import IdPath
-from app.modules.auth.dependencies import AdminUser, CurrentFactoryScope
+from app.modules.auth.dependencies import KnowledgeManager, KnowledgeScope
 from app.modules.knowledge.dependencies import KnowledgeServiceDep
 from app.modules.knowledge.schemas import (
     IngestResult,
@@ -19,7 +19,7 @@ router = APIRouter(prefix="/knowledge", tags=["knowledge"])
 
 @router.get("/documents", response_model=Page[KnowledgeDocumentItem])
 async def list_documents(
-    filters: Annotated[KnowledgeDocumentFilters, Query()], scope: CurrentFactoryScope, service: KnowledgeServiceDep
+    filters: Annotated[KnowledgeDocumentFilters, Query()], scope: KnowledgeScope, service: KnowledgeServiceDep
 ):
     return await service.list_documents(filters, scope)
 
@@ -28,8 +28,8 @@ async def list_documents(
 async def upload_document(
     file: UploadFile,
     metadata: Annotated[KnowledgeDocumentMetadata, Form()],
-    admin: AdminUser,
-    scope: CurrentFactoryScope,
+    admin: KnowledgeManager,
+    scope: KnowledgeScope,
     service: KnowledgeServiceDep,
 ):
     # One byte over the limit is enough to reject the file without reading all of it.
@@ -39,6 +39,6 @@ async def upload_document(
 
 @router.delete("/documents/{document_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_document(
-    document_id: IdPath, admin: AdminUser, scope: CurrentFactoryScope, service: KnowledgeServiceDep
+    document_id: IdPath, admin: KnowledgeManager, scope: KnowledgeScope, service: KnowledgeServiceDep
 ):
     await service.delete_document(document_id, scope)

@@ -12,8 +12,11 @@ def check_password(value: str) -> str:
 
 
 class RegisterRequest(BaseModel):
+    """Signs up a new company: creates the organization and its first admin."""
+
     model_config = ConfigDict(str_strip_whitespace=True)
 
+    organization_name: str = Field(min_length=2, max_length=150, examples=["Rupali Apparel Group"])
     full_name: str = Field(min_length=2, max_length=120)
     email: EmailStr = Field(max_length=255)
     password: str = Field(min_length=8, max_length=128)
@@ -55,6 +58,13 @@ class TokenResponse(BaseModel):
     expires_in: int
 
 
+class OrganizationSummary(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    name: str
+
+
 class UserResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
@@ -63,3 +73,4 @@ class UserResponse(BaseModel):
     email: str
     role: UserRole
     is_active: bool
+    organization: OrganizationSummary | None = Field(description="None for the platform administrator")

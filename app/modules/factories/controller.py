@@ -24,8 +24,8 @@ async def get_factory(factory_id: IdPath, scope: CurrentFactoryScope, service: F
 
 
 @router.post("", response_model=FactoryResponse, status_code=status.HTTP_201_CREATED)
-async def create_factory(data: FactoryCreate, admin: AdminUser, service: FactoryServiceDep):
-    return await service.create(data)
+async def create_factory(data: FactoryCreate, admin: AdminUser, scope: CurrentFactoryScope, service: FactoryServiceDep):
+    return await service.create(data, scope)
 
 
 @router.patch("/{factory_id}", response_model=FactoryResponse)

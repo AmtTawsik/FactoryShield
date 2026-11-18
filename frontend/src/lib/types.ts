@@ -1,6 +1,8 @@
 export type Page<T> = { items: T[]; total: number; page: number; size: number };
 
-export type UserRole = "admin" | "staff";
+export type UserRole = "super_admin" | "admin" | "staff";
+
+export type OrganizationSummary = { id: number; name: string };
 
 export type CurrentUser = {
   id: number;
@@ -8,9 +10,11 @@ export type CurrentUser = {
   email: string;
   role: UserRole;
   is_active: boolean;
+  /** null for the platform administrator */
+  organization: OrganizationSummary | null;
 };
 
-export type UserDetail = CurrentUser & {
+export type UserDetail = Omit<CurrentUser, "organization"> & {
   factory_ids: number[];
   created_at: string;
   updated_at: string;
@@ -107,10 +111,26 @@ export type KnowledgeDocument = {
   category: KnowledgeCategory;
   content_status: ContentStatus;
   verified_on: string | null;
+  /** null: shared library document */
+  organization_id: number | null;
   factory_id: number | null;
   created_at: string;
   updated_at: string;
   chunk_count: number;
+};
+
+export type OrganizationItem = {
+  id: number;
+  name: string;
+  is_active: boolean;
+  user_count: number;
+  factory_count: number;
+  created_at: string;
+  updated_at: string;
+};
+
+export type OrganizationDetail = OrganizationItem & {
+  admins: { id: number; full_name: string; email: string; is_active: boolean }[];
 };
 
 export type IngestResult = {

@@ -1,9 +1,9 @@
-"""Loads demo data for a small garment factory group.
+"""Loads demo data: the platform administrator and two customer organizations.
 
 Usage: uv run python -m scripts.seed
 
-Safe to run more than once: existing users and factories (matched by email and
-licence number) are left untouched.
+Safe to run more than once: existing organizations, users and factories (matched by
+name, email and licence number) are left untouched.
 """
 
 import asyncio
@@ -11,7 +11,7 @@ from datetime import date, datetime, time, timedelta, timezone
 
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import SessionLocal, engine
@@ -20,6 +20,7 @@ from app.models import (
     CorrectiveAction,
     Factory,
     FactoryMembership,
+    Organization,
     SafetyIncident,
     SafetyInspection,
     User,
@@ -35,10 +36,15 @@ TODAY = date.today()
 class SeedSettings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", extra="ignore", hide_input_in_errors=True)
 
+    seed_super_admin_password: str = Field(min_length=8)
     seed_admin_password: str = Field(min_length=8)
     seed_staff_password: str = Field(min_length=8)
 
 
+# Platform administrator: manages organizations and the shared document library only.
+SUPER_ADMIN = ("Abdullah Al Mubin", "amttawsik.cse@gmail.com")
+
+MAIN_ORGANIZATION = "Meghna Apparel Group"
 ADMIN = ("Farhana Rahman", "farhana.rahman@factoryshield.demo")
 
 STAFF_MEMBERS = [
@@ -298,14 +304,109 @@ FACTORIES = [
     },
 ]
 
+# A second, smaller customer: its users never see the first organization's records.
+SECOND_ORGANIZATION = "Shapla Knitwear Ltd"
+SECOND_ADMIN = ("Sabrina Akter", "sabrina.akter@shapla.demo")
+SECOND_STAFF_MEMBERS = [
+    ("Rakib Hossain", "rakib.hossain@shapla.demo", ["FL-SVR-03871", "FL-GZP-09124"]),
+]
+SECOND_FACTORIES = [
+    {
+        "license_number": "FL-SVR-03871",
+        "name": "Shapla Knitwear Ashulia Unit",
+        "address": "Plot 7, Baipail, Ashulia, Savar",
+        "district": "Dhaka",
+        "worker_count": 820,
+        "floor_count": 5,
+        "contact_person": "Mizanur Rahman",
+        "contact_phone": "+8801700000201",
+        "inspections": [
+            (-6, "electrical", None, "Annual thermography of the main distribution boards."),
+            (21, "fire", 77, "Fire alarm audible on all floors. One hose reel on floor 4 blocked by cartons. "
+                            "Drill evacuation time 3 min 40 sec."),
+            (64, "structural", 70, "Hairline cracks in the floor 5 slab near the lift core; engineer review "
+                                  "recommended. Roof water tank load within limits."),
+        ],
+        "incidents": [
+            (9, "11:20", "electrical", "medium", "Knitting section, floor 2", 0,
+             "Sparks from a loose socket feeding a knitting machine; power cut at the panel and socket "
+             "replaced.", "closed"),
+            (28, "18:45", "injury", "low", "Packing, floor 1", 1,
+             "Worker's foot bruised by a falling carton from an overloaded rack; first aid given.", "closed"),
+        ],
+        "actions": [
+            (("inspection", 1), "Clear the hose reel on floor 4 and mark a no-storage zone", "high",
+             "Floor Manager", -3, "open"),
+            (("inspection", 2), "Structural engineer to assess floor 5 slab cracks", "high",
+             "Factory Engineer", 12, "in_progress"),
+            (("incident", 1), "Limit rack loading in packing and fix the rack labels", "medium",
+             "Packing Supervisor", -15, "completed"),
+        ],
+    },
+    {
+        "license_number": "FL-GZP-09124",
+        "name": "Shapla Knitwear Tongi Unit",
+        "address": "Cherag Ali Market Road, Tongi, Gazipur",
+        "district": "Gazipur",
+        "worker_count": 540,
+        "floor_count": 4,
+        "contact_person": "Nasrin Sultana",
+        "contact_phone": "+8801700000202",
+        "inspections": [
+            (14, "ppe", 66, "Ear protection missing in the knitting hall; eight operators without masks in "
+                           "the dusty linking section."),
+            (45, "general", 79, "Canteen and toilets clean; first-aid boxes on floors 2 and 3 short of "
+                               "bandages."),
+        ],
+        "incidents": [
+            (5, "09:30", "near_miss", "medium", "Linking section, floor 3", 0,
+             "Overloaded extension board found warm to touch before the shift; removed by the electrician.",
+             "investigating"),
+        ],
+        "actions": [
+            (("inspection", 0), "Issue ear plugs and dust masks and record daily checks", "high",
+             "Compliance Officer", -2, "in_progress"),
+            (("inspection", 1), "Restock first-aid boxes on floors 2 and 3", "low", "Admin & HR", 4, "open"),
+            (("incident", 0), "Replace extension boards in linking with fixed sockets", "medium",
+             "Maintenance Team", 10, "open"),
+        ],
+    },
+]
+
+ORGANIZATIONS = [
+    (MAIN_ORGANIZATION, ADMIN, STAFF_MEMBERS, FACTORIES),
+    (SECOND_ORGANIZATION, SECOND_ADMIN, SECOND_STAFF_MEMBERS, SECOND_FACTORIES),
+]
+
+
+async def get_or_create_organization(session: AsyncSession, name: str, admin_email: str) -> tuple[Organization, bool]:
+    organization = await session.scalar(select(Organization).where(func.lower(Organization.name) == name.lower()))
+    if organization:
+        return organization, False
+    # Data from before multi-tenancy sits in the migration's default organization: give it this name.
+    admin = await session.scalar(select(User).where(User.email == admin_email))
+    if admin is not None and admin.organization is not None:
+        admin.organization.name = name
+        return admin.organization, False
+    organization = Organization(name=name)
+    session.add(organization)
+    await session.flush()
+    return organization, True
+
 
 async def get_or_create_user(
-    session: AsyncSession, full_name: str, email: str, password: str, role: UserRole
+    session: AsyncSession, full_name: str, email: str, password: str, role: UserRole, organization_id: int | None
 ) -> tuple[User, bool]:
     user = await session.scalar(select(User).where(User.email == email))
     if user:
         return user, False
-    user = User(full_name=full_name, email=email, password_hash=hash_password(password), role=role)
+    user = User(
+        full_name=full_name,
+        email=email,
+        password_hash=hash_password(password),
+        role=role,
+        organization_id=organization_id,
+    )
     session.add(user)
     await session.flush()
     return user, True
@@ -368,49 +469,59 @@ def build_factory_records(factory: Factory, data: dict, staff_member: User) -> l
 
 async def seed() -> None:
     settings = SeedSettings()
-    created = {"users": 0, "factories": 0, "memberships": 0, "records": 0}
+    created = {"organizations": 0, "users": 0, "factories": 0, "memberships": 0, "records": 0}
 
     async with SessionLocal() as session:
         _, is_new = await get_or_create_user(
-            session, *ADMIN, settings.seed_admin_password, UserRole.ADMIN
+            session, *SUPER_ADMIN, settings.seed_super_admin_password, UserRole.SUPER_ADMIN, None
         )
         created["users"] += is_new
 
-        staff_by_license: dict[str, User] = {}
-        for full_name, email, licenses in STAFF_MEMBERS:
-            staff_member, is_new = await get_or_create_user(
-                session, full_name, email, settings.seed_staff_password, UserRole.STAFF
+        for name, admin, staff_members, factories in ORGANIZATIONS:
+            organization, is_new = await get_or_create_organization(session, name, admin[1])
+            created["organizations"] += is_new
+
+            _, is_new = await get_or_create_user(
+                session, *admin, settings.seed_admin_password, UserRole.ADMIN, organization.id
             )
             created["users"] += is_new
-            for license_number in licenses:
-                staff_by_license[license_number] = staff_member
 
-        for data in FACTORIES:
-            factory_fields = {key: value for key, value in data.items() if not isinstance(value, list)}
-            factory = await session.scalar(
-                select(Factory).where(Factory.license_number == data["license_number"])
-            )
-            if factory is None:
-                factory = Factory(**factory_fields)
-                session.add(factory)
+            staff_by_license: dict[str, User] = {}
+            for full_name, email, licenses in staff_members:
+                staff_member, is_new = await get_or_create_user(
+                    session, full_name, email, settings.seed_staff_password, UserRole.STAFF, organization.id
+                )
+                created["users"] += is_new
+                for license_number in licenses:
+                    staff_by_license[license_number] = staff_member
+
+            for data in factories:
+                factory_fields = {key: value for key, value in data.items() if not isinstance(value, list)}
+                factory = await session.scalar(
+                    select(Factory).where(
+                        Factory.license_number == data["license_number"], Factory.organization_id == organization.id
+                    )
+                )
                 staff_member = staff_by_license[data["license_number"]]
-                records = build_factory_records(factory, data, staff_member)
-                session.add_all(records)
-                await session.flush()
-                created["factories"] += 1
-                created["records"] += len(records)
+                if factory is None:
+                    factory = Factory(**factory_fields, organization_id=organization.id)
+                    session.add(factory)
+                    records = build_factory_records(factory, data, staff_member)
+                    session.add_all(records)
+                    await session.flush()
+                    created["factories"] += 1
+                    created["records"] += len(records)
 
-            staff_member = staff_by_license[data["license_number"]]
-            if await session.get(FactoryMembership, (staff_member.id, factory.id)) is None:
-                session.add(FactoryMembership(user_id=staff_member.id, factory_id=factory.id))
-                created["memberships"] += 1
+                if await session.get(FactoryMembership, (staff_member.id, factory.id)) is None:
+                    session.add(FactoryMembership(user_id=staff_member.id, factory_id=factory.id))
+                    created["memberships"] += 1
 
         await session.commit()
 
     await engine.dispose()
     print(
-        "Seed complete: {users} users, {factories} factories, {memberships} memberships, "
-        "{records} inspections/incidents/actions created.".format(**created)
+        "Seed complete: {organizations} organizations, {users} users, {factories} factories, "
+        "{memberships} memberships, {records} inspections/incidents/actions created.".format(**created)
     )
 
 

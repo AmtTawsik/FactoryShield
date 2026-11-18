@@ -4,7 +4,7 @@ from pathlib import Path
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.errors import InvalidDataError, NotFoundError
+from app.core.errors import ConflictError, ForbiddenError, InvalidDataError, NotFoundError
 from app.core.pagination import Page
 from app.integrations.embeddings.client import EmbeddingClient
 from app.modules.auth.service import FactoryScope
@@ -51,13 +51,19 @@ class KnowledgeService:
         if not texts or not all(texts):
             raise InvalidDataError("A document needs at least one non-empty chunk")
         if data.factory_id is not None:
+            if scope.organization_id is None:
+                raise InvalidDataError("Shared library documents cannot belong to a factory")
             await self.factories.get(data.factory_id, scope)
         document = await self.knowledge.get_by_source_key(data.source_key)
-        if document is not None and document.factory_id is not None:
-            # Only users who can see a factory's document may replace it.
-            await self.factories.get(document.factory_id, scope)
+        if document is not None:
+            # Only the owner of a document (its organization, or the platform for the shared library) may replace it.
+            if document.organization_id != scope.organization_id:
+                raise ConflictError("A document with this key belongs to someone else")
+            if document.factory_id is not None:
+                await self.factories.get(document.factory_id, scope)
 
         values = data.model_dump()
+        values["organization_id"] = scope.organization_id
         values["source_url"] = str(data.source_url) if data.source_url else None
         content_hash = _content_hash(self.embeddings.model, texts)
 
@@ -111,7 +117,7 @@ class KnowledgeService:
         if not chunks:
             raise InvalidDataError(f"{file_name}: no text found")
         document = KnowledgeDocumentCreate(
-            **metadata.model_dump(), source_key=_upload_key(file_name, metadata.factory_id)
+            **metadata.model_dump(), source_key=_upload_key(file_name, scope.organization_id, metadata.factory_id)
         )
         return await self.ingest(document, chunks, scope)
 
@@ -120,7 +126,7 @@ class KnowledgeService:
     ) -> Page[KnowledgeDocumentItem]:
         if filters.factory_id is not None:
             await self.factories.get(filters.factory_id, scope)
-        documents, total = await self.knowledge.list_documents(filters, scope.factory_ids)
+        documents, total = await self.knowledge.list_documents(filters, scope)
         counts = await self.knowledge.chunk_counts([document.id for document in documents])
         return Page(
             items=[
@@ -138,8 +144,17 @@ class KnowledgeService:
 
     async def delete_document(self, document_id: int, scope: FactoryScope) -> None:
         document = await self.knowledge.get(document_id)
-        if document is None or (document.factory_id is not None and not scope.allows(document.factory_id)):
+        visible = document is not None and (
+            document.organization_id is None
+            or (
+                document.organization_id == scope.organization_id
+                and (document.factory_id is None or scope.allows(document.factory_id))
+            )
+        )
+        if not visible:
             raise NotFoundError("Document not found")
+        if document.organization_id != scope.organization_id:
+            raise ForbiddenError("Shared library documents are managed by the platform administrator")
         await self.knowledge.delete(document)
         await self.session.commit()
 
@@ -158,21 +173,26 @@ class KnowledgeService:
         embedding = await self.embeddings.embed_query(text)
         return await self.knowledge.search(
             embedding,
-            scope.factory_ids,
+            scope,
             limit=max(1, min(limit, MAX_RESULTS)),
             min_score=self.min_score,
             category=category,
         )
 
 
-def _upload_key(file_name: str, factory_id: int | None) -> str:
-    """Stable key from the file name, e.g. "upload-fire-drill-plan" or "upload-f3-fire-drill-plan"."""
+def _upload_key(file_name: str, organization_id: int | None, factory_id: int | None) -> str:
+    """Stable key from the file name: "upload-fire-drill-plan" in the shared library,
+    "upload-o2-fire-drill-plan" for organization 2, "upload-o2-f3-fire-drill-plan" for its factory 3."""
     stem = Path(file_name).stem.lower()
     slug = re.sub(r"[^a-z0-9]+", "-", stem).strip("-")
     if not slug:
         # Names without Latin letters or digits (e.g. Bangla) still get a stable key.
         slug = hashlib.sha256(stem.encode()).hexdigest()[:16]
-    prefix = "upload-" if factory_id is None else f"upload-f{factory_id}-"
+    prefix = "upload-"
+    if organization_id is not None:
+        prefix += f"o{organization_id}-"
+    if factory_id is not None:
+        prefix += f"f{factory_id}-"
     return (prefix + slug)[:100].rstrip("-")
 
 

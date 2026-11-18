@@ -111,8 +111,8 @@ function ChangePassword() {
 }
 
 export function AccountView() {
-  const { user, isAdmin } = useSession();
-  const factories = useAllFactories();
+  const { user, isAdmin, isSuperAdmin } = useSession();
+  const factories = useAllFactories(!isSuperAdmin);
 
   return (
     <>
@@ -124,12 +124,15 @@ export function AccountView() {
             <DetailList
               items={[
                 { label: "Name", value: user.full_name },
+                { label: "Organization", value: user.organization?.name ?? "Platform administration" },
                 { label: "Email", value: user.email },
                 { label: "Role", value: <Badge tone={isAdmin ? "brand" : "neutral"}>{USER_ROLE[user.role]}</Badge> },
                 {
                   label: "Factory access",
-                  value: isAdmin
-                    ? "All factories"
+                  value: isSuperAdmin
+                    ? "None. The platform administrator does not see organization records."
+                    : isAdmin
+                    ? "All factories of your organization"
                     : factories.isLoading
                       ? "Loading…"
                       : factories.factories.length

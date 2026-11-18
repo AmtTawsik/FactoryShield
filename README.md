@@ -23,7 +23,8 @@ Open `.env` and provide the required values.
 | `POSTGRES_PASSWORD` | Password for PostgreSQL. Use letters and numbers because this value is also included in the database URL. |
 | `DATABASE_URL` | Database connection string with the same password. This is used when running the API directly on your machine. |
 | `JWT_SECRET_KEY` | Secret key used for JWT authentication. It should contain at least 32 random characters. |
-| `SEED_ADMIN_PASSWORD` | Password for the demo admin account (minimum 8 characters). |
+| `SEED_SUPER_ADMIN_PASSWORD` | Password for the demo platform administrator account (minimum 8 characters). |
+| `SEED_ADMIN_PASSWORD` | Password for the demo organization admin accounts (minimum 8 characters). |
 | `SEED_STAFF_PASSWORD` | Password for the demo staff accounts (minimum 8 characters). |
 | `LLM_API_KEY` | Optional OpenRouter API key. The application works without it, but chat requests will return a 503 response. |
 
@@ -138,11 +139,12 @@ Run the seed script:
 docker compose exec api python -m scripts.seed
 ```
 
-This creates the demo admin account:
+This creates the platform administrator `amttawsik.cse@gmail.com` and two demo organizations:
 
-`farhana.rahman@factoryshield.demo`
+- **Meghna Apparel Group**: admin `farhana.rahman@factoryshield.demo`, three staff accounts and six factories.
+- **Shapla Knitwear Ltd**: admin `sabrina.akter@shapla.demo`, one staff account and two factories.
 
-It also creates three staff accounts using the passwords configured in `.env`.
+The passwords come from `.env`. Each organization sees only its own records; the platform administrator manages organizations and the shared document library and cannot see any organization's records. New companies can also sign up from the web app.
 
 The seed script can be run more than once without creating duplicate demo records.
 
@@ -211,7 +213,7 @@ uv run pytest
 
 FactoryShield also provides an MCP server, allowing compatible AI clients to work with factory records through the Model Context Protocol.
 
-It uses the same application services and PostgreSQL database as the REST API. Access is controlled by the authenticated user's permissions, so staff can only access factories assigned to them, while admins can access all factories.
+It uses the same application services and PostgreSQL database as the REST API. Access is controlled by the authenticated user's permissions, so staff can only access factories assigned to them, while admins can access all factories of their own organization.
 
 The server currently provides two tools, one resource, and one prompt.
 

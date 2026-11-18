@@ -42,8 +42,34 @@ async def require_admin(user: CurrentUser) -> User:
 AdminUser = Annotated[User, Depends(require_admin)]
 
 
+async def require_super_admin(user: CurrentUser) -> User:
+    if user.role != UserRole.SUPER_ADMIN:
+        raise ForbiddenError("Platform administrator access required")
+    return user
+
+
+SuperAdminUser = Annotated[User, Depends(require_super_admin)]
+
+
+async def require_knowledge_manager(user: CurrentUser) -> User:
+    """Organization admins manage their own documents; the platform administrator manages the shared library."""
+    if user.role not in (UserRole.ADMIN, UserRole.SUPER_ADMIN):
+        raise ForbiddenError("Admin access required")
+    return user
+
+
+KnowledgeManager = Annotated[User, Depends(require_knowledge_manager)]
+
+
 async def get_factory_scope(user: CurrentUser, service: AuthServiceDep) -> FactoryScope:
     return await service.get_factory_scope(user)
 
 
 CurrentFactoryScope = Annotated[FactoryScope, Depends(get_factory_scope)]
+
+
+async def get_knowledge_scope(user: CurrentUser, service: AuthServiceDep) -> FactoryScope:
+    return await service.get_knowledge_scope(user)
+
+
+KnowledgeScope = Annotated[FactoryScope, Depends(get_knowledge_scope)]

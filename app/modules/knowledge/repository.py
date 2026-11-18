@@ -1,16 +1,23 @@
-from sqlalchemy import ColumnElement, delete, func, or_, select, true
+from sqlalchemy import ColumnElement, and_, delete, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.pagination import paginate
+from app.modules.auth.service import FactoryScope
 from app.modules.knowledge.models import KnowledgeCategory, KnowledgeChunk, KnowledgeDocument
 from app.modules.knowledge.schemas import KnowledgeDocumentFilters, KnowledgeSearchResult
 
 
-def _visible(factory_ids: frozenset[int] | None) -> ColumnElement[bool]:
-    """General documents (no factory) for everyone; factory documents only within `factory_ids` (None = all)."""
-    if factory_ids is None:
-        return true()
-    return or_(KnowledgeDocument.factory_id.is_(None), KnowledgeDocument.factory_id.in_(factory_ids))
+def _visible(scope: FactoryScope) -> ColumnElement[bool]:
+    """The shared library for everyone; an organization's documents only for its users, and its factory
+    documents only for users who can access that factory."""
+    shared = KnowledgeDocument.organization_id.is_(None)
+    if scope.organization_id is None:
+        return shared
+    own = and_(
+        KnowledgeDocument.organization_id == scope.organization_id,
+        or_(KnowledgeDocument.factory_id.is_(None), KnowledgeDocument.factory_id.in_(scope.factory_ids)),
+    )
+    return or_(shared, own)
 
 
 class KnowledgeRepository:
@@ -30,9 +37,15 @@ class KnowledgeRepository:
         return await self.session.get(KnowledgeDocument, document_id)
 
     async def list_documents(
-        self, filters: KnowledgeDocumentFilters, factory_ids: frozenset[int] | None
+        self, filters: KnowledgeDocumentFilters, scope: FactoryScope
     ) -> tuple[list[KnowledgeDocument], int]:
-        query = select(KnowledgeDocument).where(_visible(factory_ids))
+        query = select(KnowledgeDocument).where(_visible(scope))
+        if filters.shared is not None:
+            query = query.where(
+                KnowledgeDocument.organization_id.is_(None)
+                if filters.shared
+                else KnowledgeDocument.organization_id.is_not(None)
+            )
         if filters.search:
             query = query.where(
                 or_(
@@ -63,7 +76,7 @@ class KnowledgeRepository:
     async def search(
         self,
         embedding: list[float],
-        factory_ids: frozenset[int] | None,
+        scope: FactoryScope,
         *,
         limit: int,
         min_score: float,
@@ -71,14 +84,13 @@ class KnowledgeRepository:
     ) -> list[KnowledgeSearchResult]:
         """Closest chunks by cosine similarity (1 = same direction), best first, above `min_score`.
 
-        General documents (no factory) are visible to everyone; factory documents only within `factory_ids`
-        (`None` means every factory).
+        Only documents visible in `scope` are searched (see `_visible`).
         """
         distance = KnowledgeChunk.embedding.cosine_distance(embedding)
         query = (
             select(KnowledgeChunk, KnowledgeDocument, (1 - distance).label("score"))
             .join(KnowledgeDocument, KnowledgeChunk.document_id == KnowledgeDocument.id)
-            .where(distance <= 1 - min_score, _visible(factory_ids))
+            .where(distance <= 1 - min_score, _visible(scope))
         )
         if category:
             query = query.where(KnowledgeDocument.category == category)

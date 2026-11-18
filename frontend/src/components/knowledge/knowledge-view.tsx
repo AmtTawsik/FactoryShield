@@ -23,7 +23,7 @@ import { KNOWLEDGE_CATEGORY, OPTIONS } from "@/lib/labels";
 import type { KnowledgeDocument, Page } from "@/lib/types";
 import { UploadDialog } from "./upload-dialog";
 
-const FILTERS = ["search", "category", "content_status", "factory_id"] as const;
+const FILTERS = ["search", "category", "content_status", "factory_id", "shared"] as const;
 
 export function ContentStatusBadge({ status, verifiedOn }: { status: KnowledgeDocument["content_status"]; verifiedOn: string | null }) {
   return status === "official_verified" ? (
@@ -34,8 +34,11 @@ export function ContentStatusBadge({ status, verifiedOn }: { status: KnowledgeDo
 }
 
 export function KnowledgeView() {
-  const { isAdmin } = useSession();
-  const factories = useAllFactories();
+  const { isAdmin, isSuperAdmin } = useSession();
+  const factories = useAllFactories(!isSuperAdmin);
+  // Organization admins manage their own documents; the platform administrator manages the shared library.
+  const canDelete = (document: KnowledgeDocument) =>
+    isSuperAdmin ? document.organization_id === null : isAdmin && document.organization_id !== null;
   const { values, update, clear, activeCount } = useUrlFilters(FILTERS);
   const { data, error, isLoading, mutate } = useSWR<Page<KnowledgeDocument>>(withQuery("/knowledge/documents", values));
   const revalidate = useRevalidate();
@@ -46,10 +49,14 @@ export function KnowledgeView() {
   return (
     <>
       <PageHeader
-        title="Knowledge documents"
-        description="Laws, standards and procedures the AI Assistant searches and cites in its answers."
+        title={isSuperAdmin ? "Shared library" : "Knowledge documents"}
+        description={
+          isSuperAdmin
+            ? "Laws and safety guidance every organization sees and the AI Assistant cites."
+            : "The shared library plus your organization's own procedures. The AI Assistant searches and cites them."
+        }
         actions={
-          isAdmin && (
+          (isAdmin || isSuperAdmin) && (
             <Button icon={<Upload className="size-4" aria-hidden="true" />} onClick={() => setUploading(true)}>
               Upload document
             </Button>
@@ -81,14 +88,29 @@ export function KnowledgeView() {
             allLabel="Any content type"
             className="w-full sm:w-44"
           />
-          <FilterSelect
-            label="Factory"
-            value={values.factory_id}
-            onChange={(factory_id) => update({ factory_id })}
-            options={factories.options}
-            allLabel="General and factory"
-            className="w-full sm:w-52"
-          />
+          {!isSuperAdmin && (
+            <>
+              <FilterSelect
+                label="Source"
+                value={values.shared}
+                onChange={(shared) => update({ shared })}
+                options={[
+                  { value: "true", label: "Shared library" },
+                  { value: "false", label: "Our documents" },
+                ]}
+                allLabel="All sources"
+                className="w-full sm:w-40"
+              />
+              <FilterSelect
+                label="Factory"
+                value={values.factory_id}
+                onChange={(factory_id) => update({ factory_id })}
+                options={factories.options}
+                allLabel="Any factory"
+                className="w-full sm:w-52"
+              />
+            </>
+          )}
         </FilterBar>
 
         {error ? (
@@ -112,10 +134,10 @@ export function KnowledgeView() {
                 <Th>Document</Th>
                 <Th className="hidden md:table-cell">Category</Th>
                 <Th>Type</Th>
-                <Th className="hidden lg:table-cell">Applies to</Th>
+                {!isSuperAdmin && <Th className="hidden lg:table-cell">Applies to</Th>}
                 <Th className="hidden text-right sm:table-cell">Passages</Th>
                 <Th className="hidden xl:table-cell">Updated</Th>
-                {isAdmin && <Th className="w-14"><span className="sr-only">Actions</span></Th>}
+                {(isAdmin || isSuperAdmin) && <Th className="w-14"><span className="sr-only">Actions</span></Th>}
               </THead>
               <TBody>
                 {data.items.map((document) => (
@@ -141,14 +163,22 @@ export function KnowledgeView() {
                     <Td>
                       <ContentStatusBadge status={document.content_status} verifiedOn={document.verified_on} />
                     </Td>
-                    <Td className="hidden max-w-48 truncate lg:table-cell">
-                      {document.factory_id ? factories.nameOf(document.factory_id) : <span className="text-slate-500">All factories</span>}
-                    </Td>
+                    {!isSuperAdmin && (
+                      <Td className="hidden max-w-48 truncate lg:table-cell">
+                        {document.organization_id === null ? (
+                          <Badge tone="brand">Shared library</Badge>
+                        ) : document.factory_id ? (
+                          factories.nameOf(document.factory_id)
+                        ) : (
+                          <span className="text-slate-600">Whole organization</span>
+                        )}
+                      </Td>
+                    )}
                     <Td className="hidden text-right tabular-nums sm:table-cell">{document.chunk_count}</Td>
                     <Td className="hidden whitespace-nowrap xl:table-cell">{formatDate(document.updated_at)}</Td>
-                    {isAdmin && (
+                    {(isAdmin || isSuperAdmin) && (
                       <Td>
-                        <RowActions label={document.title} onDelete={() => setDeleting(document)} />
+                        {canDelete(document) && <RowActions label={document.title} onDelete={() => setDeleting(document)} />}
                       </Td>
                     )}
                   </Tr>
@@ -169,7 +199,7 @@ export function KnowledgeView() {
           deleting && (
             <>
               <strong>{deleting.title}</strong> and its {deleting.chunk_count} indexed passages will be removed. The
-              assistant will no longer use it. Earlier answers are not changed.
+              assistant will no longer use it{isSuperAdmin ? " for any organization" : ""}. Earlier answers are not changed.
             </>
           )
         }

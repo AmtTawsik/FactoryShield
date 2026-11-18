@@ -134,7 +134,7 @@ class ChatService:
         """Searches the documents for the latest message; a failed search leaves the chat working without them."""
         if conversation.factory_id is not None:
             # A factory conversation sees general documents and that factory's own, not other factories'.
-            scope = FactoryScope(factory_ids=frozenset({conversation.factory_id}))
+            scope = FactoryScope(organization_id=scope.organization_id, factory_ids=frozenset({conversation.factory_id}))
         try:
             results = await self.knowledge.search(message, scope, limit=KNOWLEDGE_RESULTS)
         except EmbeddingUnavailableError:

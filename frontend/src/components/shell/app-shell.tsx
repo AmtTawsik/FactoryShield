@@ -3,6 +3,7 @@
 import {
   BookOpen,
   Building2,
+  Building,
   ClipboardCheck,
   LayoutDashboard,
   ListChecks,
@@ -14,7 +15,7 @@ import {
   X,
 } from "lucide-react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState, type ReactNode } from "react";
 import useSWR, { SWRConfig } from "swr";
 import { ApiError, errorMessage, fetcher } from "@/lib/api";
@@ -29,8 +30,9 @@ import { SessionGuard } from "./session-guard";
 import { SessionProvider, signOut } from "./session";
 
 type NavItem = { href: string; label: string; icon: typeof LayoutDashboard; adminOnly?: boolean };
+type NavSection = { heading?: string; items: NavItem[] };
 
-const NAV: { heading?: string; items: NavItem[] }[] = [
+const ORGANIZATION_NAV: NavSection[] = [
   { items: [{ href: "/", label: "Dashboard", icon: LayoutDashboard }] },
   {
     heading: "Operations",
@@ -51,6 +53,19 @@ const NAV: { heading?: string; items: NavItem[] }[] = [
   { heading: "Administration", items: [{ href: "/users", label: "User management", icon: Users, adminOnly: true }] },
 ];
 
+const PLATFORM_NAV: NavSection[] = [
+  {
+    heading: "Platform",
+    items: [
+      { href: "/organizations", label: "Organizations", icon: Building },
+      { href: "/knowledge", label: "Shared library", icon: BookOpen },
+    ],
+  },
+];
+
+/** Pages the platform administrator may open; everything else belongs to organizations. */
+const PLATFORM_PATHS = ["/organizations", "/knowledge", "/account"];
+
 function isActive(pathname: string, href: string) {
   return href === "/" ? pathname === "/" : pathname === href || pathname.startsWith(`${href}/`);
 }
@@ -67,16 +82,25 @@ function initials(name: string) {
 function Sidebar({ user, onNavigate }: { user: CurrentUser; onNavigate?: () => void }) {
   const pathname = usePathname();
   const isAdmin = user.role === "admin";
+  const nav = user.role === "super_admin" ? PLATFORM_NAV : ORGANIZATION_NAV;
 
   return (
     <div className="flex h-full flex-col bg-brand-900 text-brand-100">
       <div className="flex h-14 items-center px-4">
-        <Link href="/" onClick={onNavigate} aria-label="FactoryShield dashboard">
+        <Link href="/" onClick={onNavigate} aria-label="FactoryShield home">
           <Logo inverted />
         </Link>
       </div>
+      <div className="mx-3 rounded-md bg-white/6 px-3 py-2">
+        <p className="text-[11px] font-medium tracking-wider text-brand-300/80 uppercase">
+          {user.organization ? "Organization" : "Signed in as"}
+        </p>
+        <p className="truncate text-sm font-medium text-white" title={user.organization?.name}>
+          {user.organization?.name ?? "Platform administration"}
+        </p>
+      </div>
       <nav aria-label="Main" className="flex-1 space-y-5 overflow-y-auto px-3 py-4">
-        {NAV.map((section, index) => {
+        {nav.map((section, index) => {
           const items = section.items.filter((item) => !item.adminOnly || isAdmin);
           if (items.length === 0) return null;
           return (
@@ -194,6 +218,26 @@ function MobileNav({ user }: { user: CurrentUser }) {
   );
 }
 
+function PlatformGuard({ user, children }: { user: CurrentUser; children: ReactNode }) {
+  const pathname = usePathname();
+  const router = useRouter();
+  const blocked = user.role === "super_admin" && !PLATFORM_PATHS.some((path) => isActive(pathname, path));
+
+  useEffect(() => {
+    if (blocked) router.replace("/organizations");
+  }, [blocked, router]);
+
+  if (blocked) {
+    return (
+      <div role="status" className="flex items-center gap-2 py-12 text-sm text-slate-500">
+        <Spinner className="size-4" />
+        Opening organizations…
+      </div>
+    );
+  }
+  return <>{children}</>;
+}
+
 function FullPage({ children }: { children: ReactNode }) {
   return <div className="flex min-h-screen items-center justify-center bg-slate-50 p-6">{children}</div>;
 }
@@ -246,7 +290,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         <main id="main" className="min-w-0 lg:pl-64">
           <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
             <SessionGuard user={user} />
-            {children}
+            <PlatformGuard user={user}>{children}</PlatformGuard>
           </div>
         </main>
       </ToastProvider>

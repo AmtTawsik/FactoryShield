@@ -2,7 +2,7 @@ from datetime import date
 from enum import StrEnum
 
 from pgvector.sqlalchemy import Vector
-from sqlalchemy import Date, ForeignKey, Index, String, Text, UniqueConstraint
+from sqlalchemy import CheckConstraint, Date, ForeignKey, Index, String, Text, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base, CreatedAtMixin, TimestampMixin, string_enum
@@ -29,6 +29,9 @@ class ContentStatus(StrEnum):
 
 class KnowledgeDocument(TimestampMixin, Base):
     __tablename__ = "knowledge_documents"
+    __table_args__ = (
+        CheckConstraint("factory_id IS NULL OR organization_id IS NOT NULL", name="factory_document_has_organization"),
+    )
 
     id: Mapped[int] = mapped_column(primary_key=True)
     # Stable key from the ingestion manifest; loading the same key again updates this row instead of adding one.
@@ -41,7 +44,9 @@ class KnowledgeDocument(TimestampMixin, Base):
     category: Mapped[KnowledgeCategory] = mapped_column(string_enum(KnowledgeCategory, "knowledge_category"), index=True)
     content_status: Mapped[ContentStatus] = mapped_column(string_enum(ContentStatus, "content_status"))
     verified_on: Mapped[date | None] = mapped_column(Date)
-    # NULL: general knowledge for every user. Set: visible only to users who can access that factory.
+    # NULL: the shared library, visible to every organization. Set: that organization's private document.
+    organization_id: Mapped[int | None] = mapped_column(ForeignKey("organizations.id"), index=True)
+    # NULL: for the whole organization (or shared). Set: only for users who can access that factory.
     factory_id: Mapped[int | None] = mapped_column(ForeignKey("factories.id", ondelete="CASCADE"), index=True)
 
     factory: Mapped[Factory | None] = relationship()

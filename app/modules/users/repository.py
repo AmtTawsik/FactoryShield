@@ -24,16 +24,20 @@ class UserAdminRepository:
             result[user_id].append(factory_id)
         return result
 
-    async def existing_factory_ids(self, factory_ids: list[int]) -> set[int]:
-        return set(await self.session.scalars(select(Factory.id).where(Factory.id.in_(factory_ids))))
+    async def existing_factory_ids(self, factory_ids: list[int], organization_id: int) -> set[int]:
+        return set(
+            await self.session.scalars(
+                select(Factory.id).where(Factory.id.in_(factory_ids), Factory.organization_id == organization_id)
+            )
+        )
 
     async def replace_factories(self, user_id: int, factory_ids: list[int]) -> None:
         await self.session.execute(delete(FactoryMembership).where(FactoryMembership.user_id == user_id))
         self.session.add_all(FactoryMembership(user_id=user_id, factory_id=factory_id) for factory_id in factory_ids)
 
     # Last in the class: a method named `list` would shadow the builtin in later annotations.
-    async def list(self, filters: UserFilters) -> tuple[list[User], int]:
-        query = select(User)
+    async def list(self, filters: UserFilters, organization_id: int) -> tuple[list[User], int]:
+        query = select(User).where(User.organization_id == organization_id)
         if filters.search:
             query = query.where(
                 or_(

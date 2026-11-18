@@ -14,6 +14,12 @@ def unique_ids(value: list[int]) -> list[int]:
     return sorted(set(value))
 
 
+def organization_role(value: UserRole | None) -> UserRole | None:
+    if value == UserRole.SUPER_ADMIN:
+        raise ValueError("Role must be admin or staff")
+    return value
+
+
 class UserCreate(BaseModel):
     model_config = ConfigDict(str_strip_whitespace=True)
 
@@ -27,6 +33,7 @@ class UserCreate(BaseModel):
 
     _password = field_validator("password")(check_password)
     _factories = field_validator("factory_ids")(unique_ids)
+    _role = field_validator("role")(organization_role)
 
     @field_validator("email")
     @classmethod
@@ -39,6 +46,8 @@ class UserUpdate(PatchModel):
     role: UserRole | None = None
     is_active: bool | None = None
     password: str | None = Field(default=None, min_length=8, max_length=128, description="Set a new password")
+
+    _role = field_validator("role")(organization_role)
 
     @field_validator("password")
     @classmethod

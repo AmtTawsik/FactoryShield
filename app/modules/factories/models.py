@@ -1,4 +1,4 @@
-from sqlalchemy import CheckConstraint, ForeignKey, String, true
+from sqlalchemy import CheckConstraint, ForeignKey, String, UniqueConstraint, true
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base, CreatedAtMixin, TimestampMixin
@@ -10,11 +10,14 @@ class Factory(TimestampMixin, Base):
     __table_args__ = (
         CheckConstraint("worker_count > 0", name="worker_count_positive"),
         CheckConstraint("floor_count > 0", name="floor_count_positive"),
+        # Licence numbers are unique within an organization; two customers may record the same factory.
+        UniqueConstraint("organization_id", "license_number", name="uq_factories_organization_id_license_number"),
     )
 
     id: Mapped[int] = mapped_column(primary_key=True)
     name: Mapped[str] = mapped_column(String(150))
-    license_number: Mapped[str] = mapped_column(String(50), unique=True)
+    organization_id: Mapped[int] = mapped_column(ForeignKey("organizations.id"), index=True)
+    license_number: Mapped[str] = mapped_column(String(50))
     address: Mapped[str] = mapped_column(String(255))
     district: Mapped[str] = mapped_column(String(50), index=True)
     worker_count: Mapped[int]
@@ -25,7 +28,7 @@ class Factory(TimestampMixin, Base):
 
 
 class FactoryMembership(CreatedAtMixin, Base):
-    """Links an officer to a factory they are allowed to see. Admins see every factory."""
+    """Links a staff user to a factory they may see. Admins see every factory of their organization."""
 
     __tablename__ = "factory_memberships"
 

@@ -51,7 +51,7 @@ class InspectionService:
 
     async def create(self, data: InspectionCreate, scope: FactoryScope) -> SafetyInspection:
         await self.factories.get(data.factory_id, scope)
-        await self._check_inspector(data.inspector_id)
+        await self._check_inspector(data.inspector_id, scope)
 
         inspection = SafetyInspection(**data.model_dump())
         self._check_rules(inspection)
@@ -64,7 +64,7 @@ class InspectionService:
         inspection = await self.get(inspection_id, scope)
         changes = data.changes()
         if "inspector_id" in changes:
-            await self._check_inspector(changes["inspector_id"])
+            await self._check_inspector(changes["inspector_id"], scope)
         for field, value in changes.items():
             setattr(inspection, field, value)
         self._check_rules(inspection)
@@ -77,12 +77,12 @@ class InspectionService:
         await self.inspections.delete(inspection)
         await self.session.commit()
 
-    async def _check_inspector(self, inspector_id: int | None) -> None:
+    async def _check_inspector(self, inspector_id: int | None, scope: FactoryScope) -> None:
         if inspector_id is None:
             return
         inspector = await self.users.get_by_id(inspector_id)
-        if inspector is None or not inspector.is_active:
-            raise InvalidDataError("Inspector must be an active user")
+        if inspector is None or not inspector.is_active or inspector.organization_id != scope.organization_id:
+            raise InvalidDataError("Inspector must be an active user of your organization")
 
     @staticmethod
     def _check_rules(inspection: SafetyInspection) -> None:

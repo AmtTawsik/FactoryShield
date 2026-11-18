@@ -1,5 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { EXPIRES_COOKIE, SESSION_COOKIE, apiBaseUrl, expiresCookieOptions, sessionCookieOptions } from "@/lib/session";
+import { apiBaseUrl, setSessionCookies } from "@/lib/session";
 
 type TokenResponse = { access_token: string; expires_in: number };
 
@@ -23,7 +23,6 @@ export async function POST(request: NextRequest) {
 
   const token = body as TokenResponse;
   const response = NextResponse.json({ ok: true });
-  response.cookies.set(SESSION_COOKIE, token.access_token, sessionCookieOptions(token.expires_in));
-  response.cookies.set(EXPIRES_COOKIE, String(Date.now() + token.expires_in * 1000), expiresCookieOptions(token.expires_in));
+  setSessionCookies(response.cookies, token);
   return response;
 }
