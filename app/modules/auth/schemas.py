@@ -3,6 +3,12 @@ from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
 from app.modules.auth.models import UserRole
 
 
+def check_password(value: str) -> str:
+    if not any(char.isalpha() for char in value) or not any(char.isdigit() for char in value):
+        raise ValueError("Password must contain at least one letter and one number")
+    return value
+
+
 class RegisterRequest(BaseModel):
     model_config = ConfigDict(str_strip_whitespace=True)
 
@@ -15,12 +21,7 @@ class RegisterRequest(BaseModel):
     def lowercase_email(cls, value: str) -> str:
         return value.lower()
 
-    @field_validator("password")
-    @classmethod
-    def password_has_letter_and_digit(cls, value: str) -> str:
-        if not any(char.isalpha() for char in value) or not any(char.isdigit() for char in value):
-            raise ValueError("Password must contain at least one letter and one number")
-        return value
+    _password = field_validator("password")(check_password)
 
 
 class LoginRequest(BaseModel):

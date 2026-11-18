@@ -1,22 +1,30 @@
 import hashlib
+import re
+from pathlib import Path
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.errors import InvalidDataError
+from app.core.errors import InvalidDataError, NotFoundError
+from app.core.pagination import Page
 from app.integrations.embeddings.client import EmbeddingClient
 from app.modules.auth.service import FactoryScope
 from app.modules.factories.service import FactoryService
+from app.modules.knowledge.ingestion import IngestionError, extract_text_from_bytes, split_into_chunks
 from app.modules.knowledge.models import KnowledgeCategory, KnowledgeChunk, KnowledgeDocument
 from app.modules.knowledge.repository import KnowledgeRepository
 from app.modules.knowledge.schemas import (
     IngestResult,
     IngestStatus,
     KnowledgeDocumentCreate,
+    KnowledgeDocumentFilters,
+    KnowledgeDocumentItem,
+    KnowledgeDocumentMetadata,
     KnowledgeDocumentResponse,
     KnowledgeSearchResult,
 )
 
 MAX_RESULTS = 10
+MAX_UPLOAD_BYTES = 10 * 1024 * 1024
 
 
 class KnowledgeService:
@@ -86,6 +94,55 @@ class KnowledgeService:
         await self.session.refresh(document)
         return _result(document, status=status, chunk_count=len(texts))
 
+    async def upload(
+        self, file_name: str, data: bytes, metadata: KnowledgeDocumentMetadata, scope: FactoryScope
+    ) -> IngestResult:
+        """Stores an uploaded file through the same steps as the ingestion script.
+
+        Uploading a file with the same name (for the same factory, or as general knowledge) updates that
+        document instead of adding a copy.
+        """
+        if len(data) > MAX_UPLOAD_BYTES:
+            raise InvalidDataError(f"The file is larger than {MAX_UPLOAD_BYTES // (1024 * 1024)} MB")
+        try:
+            chunks = split_into_chunks(extract_text_from_bytes(file_name, data).text)
+        except IngestionError as exc:
+            raise InvalidDataError(str(exc)) from exc
+        if not chunks:
+            raise InvalidDataError(f"{file_name}: no text found")
+        document = KnowledgeDocumentCreate(
+            **metadata.model_dump(), source_key=_upload_key(file_name, metadata.factory_id)
+        )
+        return await self.ingest(document, chunks, scope)
+
+    async def list_documents(
+        self, filters: KnowledgeDocumentFilters, scope: FactoryScope
+    ) -> Page[KnowledgeDocumentItem]:
+        if filters.factory_id is not None:
+            await self.factories.get(filters.factory_id, scope)
+        documents, total = await self.knowledge.list_documents(filters, scope.factory_ids)
+        counts = await self.knowledge.chunk_counts([document.id for document in documents])
+        return Page(
+            items=[
+                KnowledgeDocumentItem(
+                    **KnowledgeDocumentResponse.model_validate(document).model_dump(),
+                    updated_at=document.updated_at,
+                    chunk_count=counts.get(document.id, 0),
+                )
+                for document in documents
+            ],
+            total=total,
+            page=filters.page,
+            size=filters.size,
+        )
+
+    async def delete_document(self, document_id: int, scope: FactoryScope) -> None:
+        document = await self.knowledge.get(document_id)
+        if document is None or (document.factory_id is not None and not scope.allows(document.factory_id)):
+            raise NotFoundError("Document not found")
+        await self.knowledge.delete(document)
+        await self.session.commit()
+
     async def search(
         self,
         query: str,
@@ -106,6 +163,17 @@ class KnowledgeService:
             min_score=self.min_score,
             category=category,
         )
+
+
+def _upload_key(file_name: str, factory_id: int | None) -> str:
+    """Stable key from the file name, e.g. "upload-fire-drill-plan" or "upload-f3-fire-drill-plan"."""
+    stem = Path(file_name).stem.lower()
+    slug = re.sub(r"[^a-z0-9]+", "-", stem).strip("-")
+    if not slug:
+        # Names without Latin letters or digits (e.g. Bangla) still get a stable key.
+        slug = hashlib.sha256(stem.encode()).hexdigest()[:16]
+    prefix = "upload-" if factory_id is None else f"upload-f{factory_id}-"
+    return (prefix + slug)[:100].rstrip("-")
 
 
 def _content_hash(model: str, texts: list[str]) -> str:

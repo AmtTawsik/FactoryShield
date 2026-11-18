@@ -4,7 +4,9 @@ import logging
 import re
 import tomllib
 from dataclasses import dataclass
+from io import BytesIO
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 from pydantic import ValidationError
 from pypdf import PdfReader
@@ -12,7 +14,10 @@ from pypdf.errors import PdfReadError
 
 from app.modules.auth.service import FactoryScope
 from app.modules.knowledge.schemas import IngestResult, KnowledgeDocumentCreate
-from app.modules.knowledge.service import KnowledgeService
+
+if TYPE_CHECKING:
+    # The service uses this module for uploads, so the import is for type hints only.
+    from app.modules.knowledge.service import KnowledgeService
 
 logger = logging.getLogger(__name__)
 
@@ -51,25 +56,35 @@ class PreparedDocument:
 
 
 def extract_text(path: Path) -> ExtractedText:
-    suffix = path.suffix.lower()
-    if suffix not in SUPPORTED_EXTENSIONS:
-        raise IngestionError(f"{path.name}: unsupported file type (supported: {', '.join(SUPPORTED_EXTENSIONS)})")
+    _check_supported(path.name)
     if not path.is_file():
         raise IngestionError(f"{path}: file not found")
-    if suffix == ".pdf":
-        return _extract_pdf(path)
+    return extract_text_from_bytes(path.name, path.read_bytes())
+
+
+def extract_text_from_bytes(file_name: str, data: bytes) -> ExtractedText:
+    """Text of a stored or uploaded file; the extension decides how it is read."""
+    if _check_supported(file_name) == ".pdf":
+        return _extract_pdf(file_name, data)
     try:
-        text = path.read_text(encoding="utf-8-sig")
+        text = data.decode("utf-8-sig")
     except UnicodeDecodeError as exc:
-        raise IngestionError(f"{path.name}: text files must be UTF-8") from exc
+        raise IngestionError(f"{file_name}: text files must be UTF-8") from exc
     return ExtractedText(text.replace("\r\n", "\n"))
 
 
-def _extract_pdf(path: Path) -> ExtractedText:
+def _check_supported(file_name: str) -> str:
+    suffix = Path(file_name).suffix.lower()
+    if suffix not in SUPPORTED_EXTENSIONS:
+        raise IngestionError(f"{file_name}: unsupported file type (supported: {', '.join(SUPPORTED_EXTENSIONS)})")
+    return suffix
+
+
+def _extract_pdf(file_name: str, data: bytes) -> ExtractedText:
     try:
-        pages = [page.extract_text() or "" for page in PdfReader(path).pages]
-    except (PdfReadError, OSError) as exc:
-        raise IngestionError(f"{path.name}: the PDF could not be read") from exc
+        pages = [page.extract_text() or "" for page in PdfReader(BytesIO(data)).pages]
+    except (PdfReadError, OSError, ValueError) as exc:
+        raise IngestionError(f"{file_name}: the PDF could not be read") from exc
 
     lines = [line.rstrip() for page in pages for line in page.splitlines() if not _PAGE_NUMBER.match(line)]
     # PDF lines are layout, not paragraphs: join them, rejoining words hyphenated across a line break.
@@ -83,7 +98,7 @@ def _extract_pdf(path: Path) -> ExtractedText:
     unreadable = text.count(UNREADABLE_CHARACTER)
     text = re.sub(r"[ \t]+", " ", text.replace(UNREADABLE_CHARACTER, " ")).strip()
     if not text:
-        raise IngestionError(f"{path.name}: the PDF has no extractable text (scanned PDFs are not supported)")
+        raise IngestionError(f"{file_name}: the PDF has no extractable text (scanned PDFs are not supported)")
     return ExtractedText(text, unreadable)
 
 
@@ -202,6 +217,6 @@ def prepare(entries: list[ManifestEntry]) -> list[PreparedDocument]:
 
 
 async def ingest_prepared(
-    documents: list[PreparedDocument], service: KnowledgeService, scope: FactoryScope
+    documents: list[PreparedDocument], service: "KnowledgeService", scope: FactoryScope
 ) -> list[IngestResult]:
     return [await service.ingest(item.entry.document, item.chunks, scope) for item in documents]

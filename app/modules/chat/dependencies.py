@@ -3,7 +3,6 @@ from typing import Annotated
 from fastapi import Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.config import get_settings
 from app.core.dependencies import DbSession
 from app.integrations.embeddings.client import EmbeddingClient, get_embedding_client
 from app.integrations.llm.client import LLMClient, get_llm_client
@@ -14,8 +13,7 @@ from app.modules.corrective_actions.dependencies import get_action_service
 from app.modules.factories.dependencies import get_factory_service
 from app.modules.incidents.dependencies import get_incident_service
 from app.modules.inspections.dependencies import get_inspection_service
-from app.modules.knowledge.repository import KnowledgeRepository
-from app.modules.knowledge.service import KnowledgeService
+from app.modules.knowledge.dependencies import build_knowledge_service
 
 
 def get_chat_tools(session: AsyncSession) -> ChatTools:
@@ -31,11 +29,14 @@ def get_chat_service(
     session: DbSession, embeddings: Annotated[EmbeddingClient, Depends(get_embedding_client)]
 ) -> ChatService:
     tools = get_chat_tools(session)
-    factories = tools.factories
-    knowledge = KnowledgeService(
-        session, KnowledgeRepository(session), factories, embeddings, get_settings().rag_min_score
+    return ChatService(
+        session,
+        ChatRepository(session),
+        FactoryContextRepository(session),
+        tools.factories,
+        tools,
+        build_knowledge_service(session, embeddings),
     )
-    return ChatService(session, ChatRepository(session), FactoryContextRepository(session), factories, tools, knowledge)
 
 
 ChatServiceDep = Annotated[ChatService, Depends(get_chat_service)]

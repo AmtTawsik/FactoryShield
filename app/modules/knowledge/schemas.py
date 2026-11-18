@@ -4,6 +4,7 @@ from typing import Self
 
 from pydantic import BaseModel, ConfigDict, Field, HttpUrl, model_validator
 
+from app.core.pagination import PageParams
 from app.core.schemas import Id
 from app.modules.knowledge.models import ContentStatus, KnowledgeCategory
 
@@ -14,10 +15,11 @@ class IngestStatus(StrEnum):
     UNCHANGED = "unchanged"
 
 
-class KnowledgeDocumentCreate(BaseModel):
+class KnowledgeDocumentMetadata(BaseModel):
+    """Document details entered with an upload; the file itself is sent alongside."""
+
     model_config = ConfigDict(str_strip_whitespace=True)
 
-    source_key: str = Field(pattern=r"^[a-z0-9][a-z0-9._-]{1,99}$", examples=["bd-labour-act-2006-chapter-6-safety"])
     title: str = Field(min_length=3, max_length=200)
     source_authority: str = Field(
         min_length=2, max_length=200, examples=["Department of Inspection for Factories and Establishments (DIFE)"]
@@ -37,6 +39,10 @@ class KnowledgeDocumentCreate(BaseModel):
         return self
 
 
+class KnowledgeDocumentCreate(KnowledgeDocumentMetadata):
+    source_key: str = Field(pattern=r"^[a-z0-9][a-z0-9._-]{1,99}$", examples=["bd-labour-act-2006-chapter-6-safety"])
+
+
 class KnowledgeDocumentResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
@@ -50,6 +56,18 @@ class KnowledgeDocumentResponse(BaseModel):
     verified_on: date | None
     factory_id: int | None
     created_at: datetime
+
+
+class KnowledgeDocumentItem(KnowledgeDocumentResponse):
+    updated_at: datetime
+    chunk_count: int
+
+
+class KnowledgeDocumentFilters(PageParams):
+    search: str | None = Field(default=None, max_length=100, description="Title or source authority")
+    category: KnowledgeCategory | None = None
+    content_status: ContentStatus | None = None
+    factory_id: Id | None = Field(default=None, description="Documents of this factory only")
 
 
 class IngestResult(BaseModel):
