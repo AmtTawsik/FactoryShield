@@ -31,9 +31,13 @@ class LocalUserIdentity:
 
     async def user(self, auth: AuthService, headers: Mapping[str, str] | None) -> User:
         user = await auth.users.get_by_email(self.email)
-        if user is None or not user.is_active:
+        if user is None:
             raise UnauthorizedError("The MCP stdio user does not exist or is inactive")
-        return user
+        try:
+            # Same rule as signing in: an inactive user or organization is refused.
+            return await auth.get_active_user(user.id)
+        except UnauthorizedError:
+            raise UnauthorizedError("The MCP stdio user does not exist or is inactive") from None
 
 
 def bearer_token(headers: Mapping[str, str] | None) -> str | None:

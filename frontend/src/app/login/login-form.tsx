@@ -8,7 +8,8 @@ import { Field, Input } from "@/components/ui/form";
 import { InlineAlert } from "@/components/ui/states";
 
 function safeNext(value: string | null): string {
-  return value && value.startsWith("/") && !value.startsWith("//") ? value : "/";
+  // Browsers read "\" as "/", so "/\evil.com" would leave the site like "//evil.com".
+  return value && value.startsWith("/") && !value.startsWith("//") && !value.includes("\\") ? value : "/";
 }
 
 export function LoginForm() {

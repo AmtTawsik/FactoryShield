@@ -70,6 +70,11 @@ class ActionService:
 
     async def _check_links(self, action: CorrectiveAction) -> None:
         """A linked inspection or incident must exist and belong to the same factory."""
+        # The lookups must not flush the changed action first: a missing link would fail as a database error.
+        with self.session.no_autoflush:
+            await self._check_link_values(action)
+
+    async def _check_link_values(self, action: CorrectiveAction) -> None:
         if action.inspection_id is not None:
             inspection = await self.inspections.get(action.inspection_id)
             if inspection is None or inspection.factory_id != action.factory_id:

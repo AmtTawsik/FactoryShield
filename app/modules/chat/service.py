@@ -143,8 +143,9 @@ class ChatService:
         text, sources = build_knowledge_context(results)
         return LLMMessage("system", text), sources
 
-    async def list(self, filters: ConversationFilters, user: User) -> Page[ConversationResponse]:
-        items, total = await self.chats.list_conversations(user.id, filters)
+    async def list(self, filters: ConversationFilters, user: User, scope: FactoryScope) -> Page[ConversationResponse]:
+        # Conversations about a factory the user can no longer see are hidden, like the factory itself.
+        items, total = await self.chats.list_conversations(user.id, filters, scope.factory_ids)
         return Page(
             items=[ConversationResponse.model_validate(item) for item in items],
             total=total,
@@ -152,8 +153,10 @@ class ChatService:
             size=filters.size,
         )
 
-    async def get(self, conversation_id: int, user: User) -> ConversationDetail:
+    async def get(self, conversation_id: int, user: User, scope: FactoryScope) -> ConversationDetail:
         conversation = await self._get_own(conversation_id, user)
+        if conversation.factory_id is not None and not scope.allows(conversation.factory_id):
+            raise NotFoundError("Conversation not found")
         messages = await self.chats.get_messages(conversation.id)
         return ConversationDetail(
             **ConversationResponse.model_validate(conversation).model_dump(),

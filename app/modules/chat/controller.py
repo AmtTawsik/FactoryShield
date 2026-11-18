@@ -26,11 +26,16 @@ async def send_message(
 
 @router.get("/conversations", response_model=Page[ConversationResponse])
 async def list_conversations(
-    filters: Annotated[ConversationFilters, Query()], user: CurrentUser, service: ChatServiceDep
+    filters: Annotated[ConversationFilters, Query()],
+    user: CurrentUser,
+    scope: CurrentFactoryScope,
+    service: ChatServiceDep,
 ):
-    return await service.list(filters, user)
+    return await service.list(filters, user, scope)
 
 
 @router.get("/conversations/{conversation_id}", response_model=ConversationDetail)
-async def get_conversation(conversation_id: IdPath, user: CurrentUser, service: ChatServiceDep):
-    return await service.get(conversation_id, user)
+async def get_conversation(
+    conversation_id: IdPath, user: CurrentUser, scope: CurrentFactoryScope, service: ChatServiceDep
+):
+    return await service.get(conversation_id, user, scope)

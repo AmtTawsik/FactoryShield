@@ -25,6 +25,7 @@ from app.modules.knowledge.schemas import (
 
 MAX_RESULTS = 10
 MAX_UPLOAD_BYTES = 10 * 1024 * 1024
+MAX_SOURCE_KEY_LENGTH = 100
 
 
 class KnowledgeService:
@@ -181,19 +182,27 @@ class KnowledgeService:
 
 
 def _upload_key(file_name: str, organization_id: int | None, factory_id: int | None) -> str:
-    """Stable key from the file name: "upload-fire-drill-plan" in the shared library,
-    "upload-o2-fire-drill-plan" for organization 2, "upload-o2-f3-fire-drill-plan" for its factory 3."""
+    """Stable key from the file name: "upload.fire-drill-plan" in the shared library,
+    "upload.o2.fire-drill-plan" for organization 2, "upload.o2.f3.fire-drill-plan" for its factory 3.
+
+    The slug never contains ".", so a file name such as "f3-plan.pdf" cannot produce another owner's key.
+    """
     stem = Path(file_name).stem.lower()
     slug = re.sub(r"[^a-z0-9]+", "-", stem).strip("-")
     if not slug:
         # Names without Latin letters or digits (e.g. Bangla) still get a stable key.
         slug = hashlib.sha256(stem.encode()).hexdigest()[:16]
-    prefix = "upload-"
+    prefix = "upload."
     if organization_id is not None:
-        prefix += f"o{organization_id}-"
+        prefix += f"o{organization_id}."
     if factory_id is not None:
-        prefix += f"f{factory_id}-"
-    return (prefix + slug)[:100].rstrip("-")
+        prefix += f"f{factory_id}."
+    room = MAX_SOURCE_KEY_LENGTH - len(prefix)
+    if len(slug) > room:
+        # Long names keep a hash of the full name, so two names with the same beginning stay apart.
+        digest = hashlib.sha256(slug.encode()).hexdigest()[:16]
+        slug = f"{slug[: room - len(digest) - 1].rstrip('-')}-{digest}"
+    return prefix + slug
 
 
 def _content_hash(model: str, texts: list[str]) -> str:

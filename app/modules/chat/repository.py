@@ -1,6 +1,7 @@
+from collections.abc import Collection
 from datetime import date
 
-from sqlalchemy import func, select
+from sqlalchemy import func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.pagination import paginate
@@ -20,9 +21,12 @@ class ChatRepository:
         return await self.session.get(Conversation, conversation_id)
 
     async def list_conversations(
-        self, user_id: int, filters: ConversationFilters
+        self, user_id: int, filters: ConversationFilters, factory_ids: Collection[int]
     ) -> tuple[list[Conversation], int]:
-        query = select(Conversation).where(Conversation.user_id == user_id)
+        query = select(Conversation).where(
+            Conversation.user_id == user_id,
+            or_(Conversation.factory_id.is_(None), Conversation.factory_id.in_(factory_ids)),
+        )
         if filters.factory_id is not None:
             query = query.where(Conversation.factory_id == filters.factory_id)
         query = query.order_by(Conversation.updated_at.desc(), Conversation.id.desc())
