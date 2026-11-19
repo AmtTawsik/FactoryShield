@@ -13,13 +13,13 @@ The system also includes an AI assistant that works with live factory records an
 | Git repository | https://github.com/AmtTawsik/FactoryShield |
 | Video (Google Drive) | Not published yet |
 | Live API (Swagger) | https://factoryshield-api-n0ih.onrender.com/docs |
-| Web app | Not deployed yet |
+| Web app | https://factory-shield.vercel.app |
 
-The live API runs on a free Render plan. If it has been idle, the first request can take about a minute while the server starts.
+The API runs on a free Render plan. If it has been idle, the first request (API or web app sign-in) can take about a minute while the server starts.
 
 ## Demo accounts
 
-These accounts work on the live API and the web app.
+These accounts work on the live web app and the live API.
 
 > **Note:** These accounts and passwords are shared only for evaluation. The passwords will be changed and the repository will be made private after the evaluation.
 
