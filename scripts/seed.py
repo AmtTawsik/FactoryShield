@@ -36,12 +36,12 @@ class SeedSettings(BaseSettings):
 SUPER_ADMIN = ("Abdullah Al Mubin", "amttawsik.cse@gmail.com")
 
 MAIN_ORGANIZATION = "Meghna Apparel Group"
-ADMIN = ("Farhana Rahman", "farhana.rahman@factoryshield.demo")
+ADMIN = ("Farhana Rahman", "farhana@meghnagroup.com")
 
 STAFF_MEMBERS = [
-    ("Mahmudul Hasan", "mahmudul.hasan@factoryshield.demo", ["FL-GZP-04512", "FL-GZP-07731"]),
-    ("Nusrat Jahan", "nusrat.jahan@factoryshield.demo", ["FL-NGJ-02218"]),
-    ("Arif Hossain", "arif.hossain@factoryshield.demo", ["FL-CTG-05107", "FL-DHK-03390", "FL-DHK-06044"]),
+    ("Mahmudul Hasan", "mahmudul@meghnagroup.com", ["FL-GZP-04512", "FL-GZP-07731"]),
+    ("Nusrat Jahan", "nusrat@meghnagroup.com", ["FL-NGJ-02218"]),
+    ("Arif Hossain", "arif@meghnagroup.com", ["FL-CTG-05107", "FL-DHK-03390", "FL-DHK-06044"]),
 ]
 
 # Inspections: (days ago, negative = upcoming, category, score or None if scheduled, findings)
@@ -296,9 +296,9 @@ FACTORIES = [
 ]
 
 SECOND_ORGANIZATION = "Shapla Knitwear Ltd"
-SECOND_ADMIN = ("Sabrina Akter", "sabrina.akter@shapla.demo")
+SECOND_ADMIN = ("Sabrina Akter", "sabrina@shaplaknit.com")
 SECOND_STAFF_MEMBERS = [
-    ("Rakib Hossain", "rakib.hossain@shapla.demo", ["FL-SVR-03871", "FL-GZP-09124"]),
+    ("Rakib Hossain", "rakib@shaplaknit.com", ["FL-SVR-03871", "FL-GZP-09124"]),
 ]
 SECOND_FACTORIES = [
     {

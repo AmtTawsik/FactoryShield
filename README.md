@@ -12,7 +12,28 @@ The system also includes an AI assistant that works with live factory records an
 |---|---|
 | Git repository | https://github.com/AmtTawsik/FactoryShield |
 | Video (Google Drive) | Not published yet |
-| Live API (Swagger) | Not deployed yet |
+| Live API (Swagger) | https://factoryshield-api-n0ih.onrender.com/docs |
+| Web app | Not deployed yet |
+
+The live API runs on a free Render plan. If it has been idle, the first request can take about a minute while the server starts.
+
+## Demo accounts
+
+These accounts work on the live API and the web app.
+
+> **Note:** These accounts and passwords are shared only for evaluation. The passwords will be changed and the repository will be made private after the evaluation.
+
+| Role | Organization | Name | Email | Password | Factories |
+|---|---|---|---|---|---|
+| Platform administrator | – | Abdullah Al Mubin | amttawsik.cse@gmail.com | Platform@2026 | None (manages organizations and the shared library) |
+| Admin | Meghna Apparel Group | Farhana Rahman | farhana@meghnagroup.com | Admin@2026 | All 6 |
+| Staff | Meghna Apparel Group | Mahmudul Hasan | mahmudul@meghnagroup.com | Staff@2026 | Sonali Thread Knit Composite, Bangshi Denim Works |
+| Staff | Meghna Apparel Group | Nusrat Jahan | nusrat@meghnagroup.com | Staff@2026 | Padma Stitch Apparels |
+| Staff | Meghna Apparel Group | Arif Hossain | arif@meghnagroup.com | Staff@2026 | Karnaphuli Seamline Garments, Turag Weave Fashions, Dhaleshwari Sweaters |
+| Admin | Shapla Knitwear Ltd | Sabrina Akter | sabrina@shaplaknit.com | Admin@2026 | Both |
+| Staff | Shapla Knitwear Ltd | Rakib Hossain | rakib@shaplaknit.com | Staff@2026 | Shapla Knitwear Ashulia Unit, Shapla Knitwear Tongi Unit |
+
+Admins can create, edit and delete records. Staff can only view the factories assigned to them. Each organization sees only its own data.
 
 ## The problem
 
@@ -262,8 +283,8 @@ The script creates the platform administrator:
 
 It also creates two demo organizations:
 
-- **Meghna Apparel Group:** Admin `farhana.rahman@factoryshield.demo`, three staff accounts, and six factories.
-- **Shapla Knitwear Ltd:** Admin `sabrina.akter@shapla.demo`, one staff account, and two factories.
+- **Meghna Apparel Group:** Admin `farhana@meghnagroup.com`, three staff accounts, and six factories.
+- **Shapla Knitwear Ltd:** Admin `sabrina@shaplaknit.com`, one staff account, and two factories.
 
 Account passwords are taken from `.env`.
 
@@ -351,7 +372,7 @@ To sign in, send the user's email and password:
 # Login and receive a JWT
 curl -X POST http://localhost:8000/api/v1/auth/login \
   -H "Content-Type: application/json" \
-  -d '{"email": "farhana.rahman@factoryshield.demo", "password": "<SEED_ADMIN_PASSWORD>"}'
+  -d '{"email": "farhana@meghnagroup.com", "password": "<SEED_ADMIN_PASSWORD>"}'
 ```
 
 A successful login returns a response similar to:
