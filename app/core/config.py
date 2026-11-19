@@ -1,7 +1,20 @@
+from enum import StrEnum
 from functools import lru_cache
 
 from pydantic import EmailStr, Field, SecretStr, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+
+class LLMProviderName(StrEnum):
+    GROQ = "groq"
+    OPENROUTER = "openrouter"
+
+
+# OpenAI-compatible chat completions endpoint of each provider.
+LLM_BASE_URLS = {
+    LLMProviderName.GROQ: "https://api.groq.com/openai/v1",
+    LLMProviderName.OPENROUTER: "https://openrouter.ai/api/v1",
+}
 
 
 class Settings(BaseSettings):
@@ -16,10 +29,13 @@ class Settings(BaseSettings):
     jwt_secret_key: str = Field(min_length=32)
     jwt_expire_minutes: int = Field(default=60, gt=0)
 
-    # Optional: without an API key the app still runs and only the AI assistant returns 503.
-    llm_base_url: str = "https://openrouter.ai/api/v1"
-    llm_api_key: SecretStr | None = None
-    llm_model: str = "nvidia/nemotron-3.5-super-vl:free"
+    # The AI assistant uses one provider, chosen with LLM_PROVIDER. Without that provider's API key the app
+    # still runs and only the AI assistant returns 503.
+    llm_provider: LLMProviderName = LLMProviderName.GROQ
+    groq_api_key: SecretStr | None = None
+    groq_model: str = "openai/gpt-oss-120b"
+    openrouter_api_key: SecretStr | None = None
+    openrouter_model: str = "nvidia/nemotron-3.5-super-vl:free"
     llm_timeout_seconds: float = Field(default=30, gt=0)
     llm_max_retries: int = Field(default=1, ge=0, le=5)
     llm_system_prompt: str | None = None
@@ -39,6 +55,18 @@ class Settings(BaseSettings):
 
     # The MCP stdio server runs on the local machine as this existing, active user (roles and factory scope apply).
     mcp_stdio_user_email: EmailStr | None = None
+
+    @property
+    def llm_base_url(self) -> str:
+        return LLM_BASE_URLS[self.llm_provider]
+
+    @property
+    def llm_api_key(self) -> SecretStr | None:
+        return getattr(self, f"{self.llm_provider.value}_api_key")
+
+    @property
+    def llm_model(self) -> str:
+        return getattr(self, f"{self.llm_provider.value}_model")
 
     @field_validator("mcp_stdio_user_email", mode="before")
     @classmethod

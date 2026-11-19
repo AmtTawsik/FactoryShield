@@ -26,7 +26,8 @@ Open `.env` and provide the required values.
 | `SEED_SUPER_ADMIN_PASSWORD` | Password for the demo platform administrator account (minimum 8 characters). |
 | `SEED_ADMIN_PASSWORD` | Password for the demo organization admin accounts (minimum 8 characters). |
 | `SEED_STAFF_PASSWORD` | Password for the demo staff accounts (minimum 8 characters). |
-| `LLM_API_KEY` | Optional OpenRouter API key. The application works without it, but chat requests will return a 503 response. |
+| `LLM_PROVIDER` | AI assistant provider: `groq` (default) or `openrouter`. |
+| `GROQ_API_KEY` / `OPENROUTER_API_KEY` | API key of the chosen provider (optional). The application works without it, but chat requests will return a 503 response. The model is set with `GROQ_MODEL` or `OPENROUTER_MODEL`. |
 
 To generate a secure JWT secret, you can run:
 

@@ -10,7 +10,7 @@ logger = logging.getLogger(__name__)
 
 
 class OpenAICompatibleProvider:
-    """Chat completions over any OpenAI-compatible API (OpenRouter by default)."""
+    """Chat completions over any OpenAI-compatible API (Groq or OpenRouter)."""
 
     def __init__(
         self,
