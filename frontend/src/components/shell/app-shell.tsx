@@ -63,7 +63,6 @@ const PLATFORM_NAV: NavSection[] = [
   },
 ];
 
-/** Pages the platform administrator may open; everything else belongs to organizations. */
 const PLATFORM_PATHS = ["/organizations", "/knowledge", "/account"];
 
 function isActive(pathname: string, href: string) {

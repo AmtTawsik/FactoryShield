@@ -44,10 +44,6 @@ class KnowledgeService:
         self.min_score = min_score
 
     async def ingest(self, data: KnowledgeDocumentCreate, chunks: list[str], scope: FactoryScope) -> IngestResult:
-        """Saves a document and its embedded chunks, or updates the document already stored under the same key.
-
-        Unchanged chunks are not embedded again; changed chunks replace the old ones.
-        """
         texts = [chunk.strip() for chunk in chunks]
         if not texts or not all(texts):
             raise InvalidDataError("A document needs at least one non-empty chunk")
@@ -57,7 +53,6 @@ class KnowledgeService:
             await self.factories.get(data.factory_id, scope)
         document = await self.knowledge.get_by_source_key(data.source_key)
         if document is not None:
-            # Only the owner of a document (its organization, or the platform for the shared library) may replace it.
             if document.organization_id != scope.organization_id:
                 raise ConflictError("A document with this key belongs to someone else")
             if document.factory_id is not None:
@@ -78,7 +73,7 @@ class KnowledgeService:
             await self.session.refresh(document)
             return _result(document, status=IngestStatus.UPDATED, chunk_count=len(texts))
 
-        # Embed first: if the service fails, nothing is written or replaced.
+        # embed first, so nothing is written if the service fails
         vectors = await self.embeddings.embed_passages(texts)
         if document is None:
             document = KnowledgeDocument(**values, content_hash=content_hash)
@@ -104,11 +99,6 @@ class KnowledgeService:
     async def upload(
         self, file_name: str, data: bytes, metadata: KnowledgeDocumentMetadata, scope: FactoryScope
     ) -> IngestResult:
-        """Stores an uploaded file through the same steps as the ingestion script.
-
-        Uploading a file with the same name (for the same factory, or as general knowledge) updates that
-        document instead of adding a copy.
-        """
         if len(data) > MAX_UPLOAD_BYTES:
             raise InvalidDataError(f"The file is larger than {MAX_UPLOAD_BYTES // (1024 * 1024)} MB")
         try:
@@ -167,7 +157,6 @@ class KnowledgeService:
         limit: int = 5,
         category: KnowledgeCategory | None = None,
     ) -> list[KnowledgeSearchResult]:
-        """Chunks most similar to the question that the user may see. An empty list means nothing relevant."""
         text = query.strip()
         if not text:
             raise InvalidDataError("Search query cannot be empty")
@@ -182,15 +171,9 @@ class KnowledgeService:
 
 
 def _upload_key(file_name: str, organization_id: int | None, factory_id: int | None) -> str:
-    """Stable key from the file name: "upload.fire-drill-plan" in the shared library,
-    "upload.o2.fire-drill-plan" for organization 2, "upload.o2.f3.fire-drill-plan" for its factory 3.
-
-    The slug never contains ".", so a file name such as "f3-plan.pdf" cannot produce another owner's key.
-    """
     stem = Path(file_name).stem.lower()
     slug = re.sub(r"[^a-z0-9]+", "-", stem).strip("-")
     if not slug:
-        # Names without Latin letters or digits (e.g. Bangla) still get a stable key.
         slug = hashlib.sha256(stem.encode()).hexdigest()[:16]
     prefix = "upload."
     if organization_id is not None:
@@ -199,7 +182,6 @@ def _upload_key(file_name: str, organization_id: int | None, factory_id: int | N
         prefix += f"f{factory_id}."
     room = MAX_SOURCE_KEY_LENGTH - len(prefix)
     if len(slug) > room:
-        # Long names keep a hash of the full name, so two names with the same beginning stay apart.
         digest = hashlib.sha256(slug.encode()).hexdigest()[:16]
         slug = f"{slug[: room - len(digest) - 1].rstrip('-')}-{digest}"
     return prefix + slug
@@ -208,7 +190,6 @@ def _upload_key(file_name: str, organization_id: int | None, factory_id: int | N
 def _content_hash(model: str, texts: list[str]) -> str:
     digest = hashlib.sha256(model.encode())
     for text in texts:
-        # The separator keeps ["ab", "c"] and ["a", "bc"] apart.
         digest.update(b"\x00" + text.encode())
     return digest.hexdigest()
 

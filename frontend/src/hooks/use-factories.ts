@@ -16,10 +16,6 @@ async function loadAllFactories(): Promise<Factory[]> {
   }
 }
 
-/**
- * Every factory the user can see (used for names in tables and for pickers).
- * Pass `false` where the platform administrator may be signed in: they have no factories.
- */
 export function useAllFactories(enabled = true) {
   const { data, error, isLoading, mutate } = useSWR(enabled ? ALL_FACTORIES_KEY : null, loadAllFactories, {
     revalidateOnFocus: false,

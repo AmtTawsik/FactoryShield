@@ -14,7 +14,7 @@ const PAGE_SIZE = 100;
 
 function cell(value: string | number | boolean | null | undefined): string {
   let text = value === null || value === undefined ? "" : String(value);
-  // Spreadsheet apps run text cells that start with these characters as formulas.
+  // stop Excel from running cells as formulas
   if (typeof value === "string" && /^[=+\-@\t\r]/.test(text)) text = `'${text}`;
   return /[",\r\n]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
 }
@@ -22,7 +22,7 @@ function cell(value: string | number | boolean | null | undefined): string {
 export function toCsv<T>(items: T[], columns: CsvColumn<T>[]): string {
   const lines = [columns.map((column) => cell(column.header)).join(",")];
   for (const item of items) lines.push(columns.map((column) => cell(column.value(item))).join(","));
-  // The byte order mark makes Excel read the file as UTF-8 (needed for Bangla text).
+  // BOM so Excel reads Bangla correctly
   return `\ufeff${lines.join("\r\n")}\r\n`;
 }
 
@@ -35,7 +35,6 @@ async function fetchAll<T>(path: string, query: Record<string, string>): Promise
   }
 }
 
-/** Downloads every row that matches the current filters (all pages), not only the visible page. */
 export function ExportButton<T>({
   path,
   filters,

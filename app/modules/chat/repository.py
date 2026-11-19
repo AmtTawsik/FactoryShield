@@ -33,7 +33,6 @@ class ChatRepository:
         return await paginate(self.session, query, filters)
 
     async def get_messages(self, conversation_id: int, limit: int | None = None) -> list[ChatMessage]:
-        """Messages oldest first; with `limit`, only the most recent ones."""
         query = select(ChatMessage).where(ChatMessage.conversation_id == conversation_id)
         if limit is None:
             return list(await self.session.scalars(query.order_by(ChatMessage.id)))
@@ -45,7 +44,6 @@ class ChatRepository:
 
 
 class FactoryContextRepository:
-    """Read-only summaries of one factory's records for the assistant's context."""
 
     def __init__(self, session: AsyncSession):
         self.session = session

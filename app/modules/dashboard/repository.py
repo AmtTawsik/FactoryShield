@@ -22,7 +22,6 @@ def _start_of(day: date) -> datetime:
 
 
 class DashboardRepository:
-    """Aggregate queries only. `factory_ids` is the set to cover; `None` means every factory."""
 
     def __init__(self, session: AsyncSession):
         self.session = session

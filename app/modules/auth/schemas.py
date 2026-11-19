@@ -12,7 +12,6 @@ def check_password(value: str) -> str:
 
 
 class RegisterRequest(BaseModel):
-    """Signs up a new company: creates the organization and its first admin."""
 
     model_config = ConfigDict(str_strip_whitespace=True)
 

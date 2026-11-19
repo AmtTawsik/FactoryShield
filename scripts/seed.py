@@ -1,11 +1,3 @@
-"""Loads demo data: the platform administrator and two customer organizations.
-
-Usage: uv run python -m scripts.seed
-
-Safe to run more than once: existing organizations, users and factories (matched by
-name, email and licence number) are left untouched.
-"""
-
 import asyncio
 from datetime import date, datetime, time, timedelta, timezone
 
@@ -41,7 +33,6 @@ class SeedSettings(BaseSettings):
     seed_staff_password: str = Field(min_length=8)
 
 
-# Platform administrator: manages organizations and the shared document library only.
 SUPER_ADMIN = ("Abdullah Al Mubin", "amttawsik.cse@gmail.com")
 
 MAIN_ORGANIZATION = "Meghna Apparel Group"
@@ -304,7 +295,6 @@ FACTORIES = [
     },
 ]
 
-# A second, smaller customer: its users never see the first organization's records.
 SECOND_ORGANIZATION = "Shapla Knitwear Ltd"
 SECOND_ADMIN = ("Sabrina Akter", "sabrina.akter@shapla.demo")
 SECOND_STAFF_MEMBERS = [
@@ -383,7 +373,6 @@ async def get_or_create_organization(session: AsyncSession, name: str, admin_ema
     organization = await session.scalar(select(Organization).where(func.lower(Organization.name) == name.lower()))
     if organization:
         return organization, False
-    # Data from before multi-tenancy sits in the migration's default organization: give it this name.
     admin = await session.scalar(select(User).where(User.email == admin_email))
     if admin is not None and admin.organization is not None:
         admin.organization.name = name

@@ -8,8 +8,6 @@ from app.modules.knowledge.schemas import KnowledgeDocumentFilters, KnowledgeSea
 
 
 def _visible(scope: FactoryScope) -> ColumnElement[bool]:
-    """The shared library for everyone; an organization's documents only for its users, and its factory
-    documents only for users who can access that factory."""
     shared = KnowledgeDocument.organization_id.is_(None)
     if scope.organization_id is None:
         return shared
@@ -70,7 +68,6 @@ class KnowledgeRepository:
         return {document_id: count for document_id, count in rows}
 
     async def delete(self, document: KnowledgeDocument) -> None:
-        # Chunks are removed by the ON DELETE CASCADE foreign key.
         await self.session.delete(document)
 
     async def search(
@@ -82,10 +79,6 @@ class KnowledgeRepository:
         min_score: float,
         category: KnowledgeCategory | None = None,
     ) -> list[KnowledgeSearchResult]:
-        """Closest chunks by cosine similarity (1 = same direction), best first, above `min_score`.
-
-        Only documents visible in `scope` are searched (see `_visible`).
-        """
         distance = KnowledgeChunk.embedding.cosine_distance(embedding)
         query = (
             select(KnowledgeChunk, KnowledgeDocument, (1 - distance).label("score"))

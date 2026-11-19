@@ -7,7 +7,6 @@ const POINTS = [
   "Corrective actions with due dates and overdue alerts",
 ];
 
-/** Two-column frame for the sign-in and sign-up pages. */
 export function AuthLayout({ title, description, children }: { title: string; description: string; children: ReactNode }) {
   return (
     <div className="flex min-h-screen">

@@ -17,7 +17,6 @@ class User(TimestampMixin, Base):
     __tablename__ = "users"
     __table_args__ = (
         CheckConstraint("email = lower(email)", name="email_lowercase"),
-        # The platform's super admins belong to no organization; every other user belongs to exactly one.
         CheckConstraint("(role = 'super_admin') = (organization_id IS NULL)", name="organization_matches_role"),
     )
 
@@ -31,5 +30,4 @@ class User(TimestampMixin, Base):
     is_active: Mapped[bool] = mapped_column(default=True, server_default=true())
     organization_id: Mapped[int | None] = mapped_column(ForeignKey("organizations.id"), index=True)
 
-    # Loaded with the user: every request checks that the organization is active.
     organization: Mapped[Organization | None] = relationship(lazy="joined")

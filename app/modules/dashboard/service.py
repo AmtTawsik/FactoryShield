@@ -29,7 +29,6 @@ class DashboardService:
     async def summary(self, filters: DashboardFilters, scope: FactoryScope) -> DashboardSummary:
         factory_ids = scope.factory_ids
         if filters.factory_id is not None:
-            # Same 404 as the other endpoints for a factory outside the user's scope.
             factory = await self.factories.get(filters.factory_id, scope)
             factory_ids = frozenset({factory.id})
 
@@ -74,7 +73,6 @@ class DashboardService:
 
 
 def _last_months(on_date: date, count: int) -> list[str]:
-    """`count` month keys ending with the current month, oldest first, e.g. ["2026-06", ..., "2026-11"]."""
     year, month = on_date.year, on_date.month
     keys = []
     for _ in range(count):

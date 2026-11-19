@@ -34,9 +34,7 @@ class KnowledgeDocument(TimestampMixin, Base):
     )
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    # Stable key from the ingestion manifest; loading the same key again updates this row instead of adding one.
     source_key: Mapped[str] = mapped_column(String(100), unique=True)
-    # SHA-256 of the embedding model and chunk texts; unchanged documents are not embedded again.
     content_hash: Mapped[str] = mapped_column(String(64))
     title: Mapped[str] = mapped_column(String(200))
     source_authority: Mapped[str] = mapped_column(String(200))
@@ -44,9 +42,7 @@ class KnowledgeDocument(TimestampMixin, Base):
     category: Mapped[KnowledgeCategory] = mapped_column(string_enum(KnowledgeCategory, "knowledge_category"), index=True)
     content_status: Mapped[ContentStatus] = mapped_column(string_enum(ContentStatus, "content_status"))
     verified_on: Mapped[date | None] = mapped_column(Date)
-    # NULL: the shared library, visible to every organization. Set: that organization's private document.
     organization_id: Mapped[int | None] = mapped_column(ForeignKey("organizations.id"), index=True)
-    # NULL: for the whole organization (or shared). Set: only for users who can access that factory.
     factory_id: Mapped[int | None] = mapped_column(ForeignKey("factories.id", ondelete="CASCADE"), index=True)
 
     factory: Mapped[Factory | None] = relationship()
@@ -68,7 +64,6 @@ class KnowledgeChunk(CreatedAtMixin, Base):
     document_id: Mapped[int] = mapped_column(ForeignKey("knowledge_documents.id", ondelete="CASCADE"))
     chunk_index: Mapped[int]
     content: Mapped[str] = mapped_column(Text)
-    # Changing the embedding model to one with another vector size needs a migration and re-embedding.
     embedding: Mapped[list[float]] = mapped_column(Vector(EMBEDDING_DIMENSIONS))
 
     document: Mapped[KnowledgeDocument] = relationship()

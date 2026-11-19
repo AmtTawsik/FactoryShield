@@ -8,7 +8,6 @@ RECENT_INSPECTIONS = 5
 
 
 async def build_factory_context(factory: Factory, records: FactoryContextRepository) -> str:
-    """Plain-text summary of one factory's records, given to the assistant as evidence."""
     on_date = today()
     inspections = await records.recent_inspections(factory.id, RECENT_INSPECTIONS)
     inspection_lines = [
@@ -38,11 +37,6 @@ async def build_factory_context(factory: Factory, records: FactoryContextReposit
 
 
 def build_knowledge_context(results: list[KnowledgeSearchResult] | None) -> tuple[str, list[KnowledgeSource]]:
-    """Document search results for the latest message, numbered by document, and the documents behind them.
-
-    `None` means the search could not run. The sources come from the database, so the reply can only
-    point to documents that were really retrieved.
-    """
     if results is None:
         return (
             "Document search is unavailable right now, so no documents were checked for the user's latest "
@@ -95,7 +89,6 @@ def build_knowledge_context(results: list[KnowledgeSearchResult] | None) -> tupl
 
 
 def build_factory_list(factories: list[Factory], total: int) -> str:
-    """Factories the user may ask about in a conversation that is not tied to one factory."""
     if not factories:
         return "This user has no factories assigned, so no factory records are available."
     lines = ["Factories this user can access (use the ID in tool calls):"]

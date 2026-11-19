@@ -36,7 +36,6 @@ export function ContentStatusBadge({ status, verifiedOn }: { status: KnowledgeDo
 export function KnowledgeView() {
   const { isAdmin, isSuperAdmin } = useSession();
   const factories = useAllFactories(!isSuperAdmin);
-  // Organization admins manage their own documents; the platform administrator manages the shared library.
   const canDelete = (document: KnowledgeDocument) =>
     isSuperAdmin ? document.organization_id === null : isAdmin && document.organization_id !== null;
   const { values, update, clear, activeCount } = useUrlFilters(FILTERS);

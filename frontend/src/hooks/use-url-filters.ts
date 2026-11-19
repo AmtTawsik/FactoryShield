@@ -3,10 +3,6 @@
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useMemo } from "react";
 
-/**
- * Filter values kept in the address bar, so a filtered list can be bookmarked, shared
- * and restored with the back button. Changing any filter other than `page` resets the page.
- */
 export function useUrlFilters<K extends string>(keys: readonly K[]) {
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -16,7 +12,6 @@ export function useUrlFilters<K extends string>(keys: readonly K[]) {
     const result = { page: Number(searchParams.get("page")) || 1 } as Record<K, string> & { page: number };
     for (const key of keys) (result as Record<string, string>)[key] = searchParams.get(key) ?? "";
     return result;
-    // keys is a constant list declared by each page
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams]);
 

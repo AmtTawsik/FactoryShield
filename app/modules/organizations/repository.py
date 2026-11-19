@@ -22,7 +22,6 @@ class OrganizationRepository:
         return await self.session.scalar(select(Organization).where(func.lower(Organization.name) == name.lower()))
 
     async def counts(self, organization_ids: list[int]) -> dict[int, tuple[int, int]]:
-        """(users, factories) per organization."""
         users = dict(
             (await self.session.execute(
                 select(User.organization_id, func.count())
@@ -48,7 +47,6 @@ class OrganizationRepository:
             )
         )
 
-    # Last in the class: a method named `list` would shadow the builtin in later annotations.
     async def list(self, filters: OrganizationFilters) -> tuple[list[Organization], int]:
         query = select(Organization)
         if filters.search:

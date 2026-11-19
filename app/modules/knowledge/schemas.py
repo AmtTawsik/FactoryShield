@@ -16,7 +16,6 @@ class IngestStatus(StrEnum):
 
 
 class KnowledgeDocumentMetadata(BaseModel):
-    """Document details entered with an upload; the file itself is sent alongside."""
 
     model_config = ConfigDict(str_strip_whitespace=True)
 
@@ -79,7 +78,6 @@ class IngestResult(BaseModel):
 
 
 class KnowledgeSource(BaseModel):
-    """A stored document an answer drew on; every field comes from the database, never from the model."""
 
     document_id: int
     title: str

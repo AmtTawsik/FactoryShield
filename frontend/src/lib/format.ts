@@ -13,19 +13,16 @@ const dateTimeFormat = new Intl.DateTimeFormat("en-GB", {
 const monthFormat = new Intl.DateTimeFormat("en-GB", { month: "short", year: "2-digit", timeZone: "UTC" });
 const numberFormat = new Intl.NumberFormat("en-US");
 
-/** "2026-11-18" -> "18 Nov 2026" (calendar dates have no time zone). */
 export function formatDate(value: string | null | undefined): string {
   if (!value) return "—";
   return dateFormat.format(new Date(`${value.slice(0, 10)}T00:00:00Z`));
 }
 
-/** Timestamps are shown in Bangladesh time. */
 export function formatDateTime(value: string | null | undefined): string {
   if (!value) return "—";
   return dateTimeFormat.format(new Date(value));
 }
 
-/** "2026-11" -> "Nov 26" */
 export function formatMonth(value: string): string {
   return monthFormat.format(new Date(`${value}-01T00:00:00Z`));
 }
@@ -34,17 +31,14 @@ export function formatNumber(value: number | null | undefined): string {
   return value === null || value === undefined ? "—" : numberFormat.format(value);
 }
 
-/** Today in Bangladesh as YYYY-MM-DD. */
 export function todayInDhaka(): string {
   return new Intl.DateTimeFormat("en-CA", { timeZone: TIME_ZONE }).format(new Date());
 }
 
-/** <input type="datetime-local"> value (Bangladesh time) -> ISO string with +06:00. */
 export function localInputToIso(value: string): string {
   return `${value.length === 16 ? `${value}:00` : value}+06:00`;
 }
 
-/** ISO timestamp -> <input type="datetime-local"> value in Bangladesh time. */
 export function isoToLocalInput(value: string): string {
   const parts = new Intl.DateTimeFormat("en-CA", {
     timeZone: TIME_ZONE,

@@ -100,7 +100,6 @@ export const OPTIONS = {
   actionStatus: options(ACTION_STATUS),
   knowledgeCategory: options(KNOWLEDGE_CATEGORY),
   contentStatus: options(CONTENT_STATUS),
-  /** Roles an organization admin can give: never the platform role. */
   userRole: options(USER_ROLE).filter((option) => option.value !== "super_admin"),
 };
 

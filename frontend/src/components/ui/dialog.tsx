@@ -15,7 +15,6 @@ type DialogProps = {
   children: ReactNode;
   footer?: ReactNode;
   size?: "sm" | "md" | "lg";
-  /** Prevents closing with Escape or the close button, e.g. while saving. */
   busy?: boolean;
 };
 
@@ -81,7 +80,6 @@ type FormDialogProps = Omit<DialogProps, "footer" | "busy"> & {
   error?: string | null;
 };
 
-/** A dialog whose body is a form, with Cancel / Save buttons in the footer. */
 export function FormDialog({ onSubmit, submitLabel, saving, error, children, onClose, ...props }: FormDialogProps) {
   const formId = useId();
   return (

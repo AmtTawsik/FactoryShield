@@ -52,7 +52,6 @@ SuperAdminUser = Annotated[User, Depends(require_super_admin)]
 
 
 async def require_knowledge_manager(user: CurrentUser) -> User:
-    """Organization admins manage their own documents; the platform administrator manages the shared library."""
     if user.role not in (UserRole.ADMIN, UserRole.SUPER_ADMIN):
         raise ForbiddenError("Admin access required")
     return user

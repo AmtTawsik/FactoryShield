@@ -113,7 +113,6 @@ function CopyButton({ text }: { text: string }) {
           setCopied(true);
           setTimeout(() => setCopied(false), 1500);
         } catch {
-          // Clipboard access can be blocked; nothing else to do.
         }
       }}
       className="inline-flex items-center gap-1 rounded-md px-1.5 py-1 text-xs text-slate-500 hover:bg-slate-100 hover:text-slate-800"

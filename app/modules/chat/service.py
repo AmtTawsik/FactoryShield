@@ -30,14 +30,11 @@ from app.modules.knowledge.service import KnowledgeService
 
 logger = logging.getLogger(__name__)
 
-# Only the most recent turns are sent to the model; the full history stays in the database.
 HISTORY_LIMIT = 20
 TITLE_LENGTH = 80
-# Upper bounds for one user message: model rounds that may call tools, and tool calls per round.
 MAX_TOOL_ROUNDS = 4
 MAX_TOOL_CALLS_PER_ROUND = 5
 FACTORY_LIST_LIMIT = 50
-# Document chunks given to the model per message.
 KNOWLEDGE_RESULTS = 5
 
 
@@ -77,7 +74,7 @@ class ChatService:
             ToolContext(scope=scope, default_factory_id=conversation.factory_id),
         )
 
-        # Saved only after the provider answered, so a failed call leaves no half-finished turn.
+        # save only after the model answered
         new_messages += [
             ChatMessage(role=MessageRole.USER, content=data.message),
             ChatMessage(role=MessageRole.ASSISTANT, content=reply),
@@ -100,7 +97,6 @@ class ChatService:
     async def _answer(
         self, llm: LLMClient, messages: list[LLMMessage], tool_context: ToolContext
     ) -> tuple[str, list[str]]:
-        """Lets the model call tools until it answers, within the round limit."""
         tools_used: list[str] = []
         for _ in range(MAX_TOOL_ROUNDS):
             response = await llm.complete(messages, self.tools.definitions)
@@ -115,14 +111,13 @@ class ChatService:
                 if call.name not in tools_used:
                     tools_used.append(call.name)
 
-        # Round limit reached: ask for a final answer from the results collected so far, without tools.
+        # out of rounds: ask for a final answer without tools
         logger.warning("Tool round limit reached; requesting an answer without tools")
         response = await llm.complete(messages)
         return _require_text(response.content), tools_used
 
     async def _context(self, conversation: Conversation, scope: FactoryScope) -> LLMMessage:
         if conversation.factory_id is not None:
-            # Checked on every message, so staff removed from a factory lose access to its records.
             factory = await self.factories.get(conversation.factory_id, scope)
             return LLMMessage("system", await build_factory_context(factory, self.records))
         page = await self.factories.list(FactoryFilters(size=FACTORY_LIST_LIMIT), scope)
@@ -131,9 +126,7 @@ class ChatService:
     async def _knowledge(
         self, message: str, conversation: Conversation, scope: FactoryScope
     ) -> tuple[LLMMessage, list[KnowledgeSource]]:
-        """Searches the documents for the latest message; a failed search leaves the chat working without them."""
         if conversation.factory_id is not None:
-            # A factory conversation sees general documents and that factory's own, not other factories'.
             scope = FactoryScope(organization_id=scope.organization_id, factory_ids=frozenset({conversation.factory_id}))
         try:
             results = await self.knowledge.search(message, scope, limit=KNOWLEDGE_RESULTS)
@@ -144,7 +137,6 @@ class ChatService:
         return LLMMessage("system", text), sources
 
     async def list(self, filters: ConversationFilters, user: User, scope: FactoryScope) -> Page[ConversationResponse]:
-        # Conversations about a factory the user can no longer see are hidden, like the factory itself.
         items, total = await self.chats.list_conversations(user.id, filters, scope.factory_ids)
         return Page(
             items=[ConversationResponse.model_validate(item) for item in items],
@@ -164,7 +156,6 @@ class ChatService:
         )
 
     async def _get_own(self, conversation_id: int, user: User) -> Conversation:
-        # Conversations are private to their owner, admins included.
         conversation = await self.chats.get_conversation(conversation_id)
         if conversation is None or conversation.user_id != user.id:
             raise NotFoundError("Conversation not found")

@@ -20,7 +20,6 @@ from app.modules.organizations.schemas import (
 
 
 class OrganizationService:
-    """Organization management for the platform administrator. It never reads the organizations' records."""
 
     def __init__(self, session: AsyncSession, organizations: OrganizationRepository, auth: AuthService):
         self.session = session
@@ -57,7 +56,6 @@ class OrganizationService:
         return await self.get(organization.id)
 
     async def add_admin(self, organization_id: int, data: AdminAccountCreate) -> OrganizationDetail:
-        """Adds another admin."""
         organization = await self._get(organization_id)
         if await self.users.get_by_email(data.email):
             raise ConflictError(DUPLICATE_EMAIL)
@@ -80,7 +78,6 @@ class OrganizationService:
         await self.session.refresh(organization)
         return organization
 
-    # Last in the class: a method named `list` would shadow the builtin in later annotations.
     async def list(self, filters: OrganizationFilters) -> Page[OrganizationItem]:
         organizations, total = await self.organizations.list(filters)
         counts = await self.organizations.counts([organization.id for organization in organizations])

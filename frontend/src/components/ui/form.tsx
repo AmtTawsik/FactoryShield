@@ -117,7 +117,6 @@ export function Checkbox({ label, description, className, ...props }: ComponentP
   );
 }
 
-/** Compact select used in filter bars; the label is visually hidden. */
 export function FilterSelect({
   label,
   value,
@@ -156,7 +155,6 @@ export function FilterSelect({
   );
 }
 
-/** Label and messages for a group of controls (e.g. a list of checkboxes). */
 export function FieldGroup({ label, hint, error, children }: { label: string; hint?: ReactNode; error?: string; children: ReactNode }) {
   const id = useId();
   return (

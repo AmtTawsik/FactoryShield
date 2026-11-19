@@ -14,9 +14,7 @@ export function useSession() {
   if (!user) throw new Error("useSession must be used inside SessionProvider");
   return {
     user,
-    /** Admin of the user's organization. */
     isAdmin: user.role === "admin",
-    /** Platform administrator: manages organizations and the shared library, sees no organization records. */
     isSuperAdmin: user.role === "super_admin",
   };
 }

@@ -1,5 +1,3 @@
-"""Who an MCP request acts as. Each transport has its own rule; the role and factory scope apply to both."""
-
 from collections.abc import Mapping
 from typing import Protocol
 
@@ -14,7 +12,6 @@ class Identity(Protocol):
 
 
 class BearerTokenIdentity:
-    """HTTP transport: the user of the `Authorization: Bearer <JWT>` header, checked on every call."""
 
     async def user(self, auth: AuthService, headers: Mapping[str, str] | None) -> User:
         token = bearer_token(headers)
@@ -24,7 +21,6 @@ class BearerTokenIdentity:
 
 
 class LocalUserIdentity:
-    """stdio transport: the configured local user. The process is started by someone on the same machine."""
 
     def __init__(self, email: str):
         self.email = email
@@ -34,7 +30,6 @@ class LocalUserIdentity:
         if user is None:
             raise UnauthorizedError("The MCP stdio user does not exist or is inactive")
         try:
-            # Same rule as signing in: an inactive user or organization is refused.
             return await auth.get_active_user(user.id)
         except UnauthorizedError:
             raise UnauthorizedError("The MCP stdio user does not exist or is inactive") from None

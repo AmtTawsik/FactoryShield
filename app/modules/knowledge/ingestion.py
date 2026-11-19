@@ -1,5 +1,3 @@
-"""Turns document files into chunks for the knowledge base: text extraction, splitting and the manifest."""
-
 import logging
 import re
 import tomllib
@@ -16,14 +14,12 @@ from app.modules.auth.service import FactoryScope
 from app.modules.knowledge.schemas import IngestResult, KnowledgeDocumentCreate
 
 if TYPE_CHECKING:
-    # The service uses this module for uploads, so the import is for type hints only.
     from app.modules.knowledge.service import KnowledgeService
 
 logger = logging.getLogger(__name__)
 
 SUPPORTED_EXTENSIONS = (".pdf", ".txt", ".md")
-# multilingual-e5-small reads at most 512 tokens. Bangla text uses roughly one token per two to three
-# characters, so 900 characters keeps a chunk inside that limit with room to spare.
+# e5-small reads at most 512 tokens
 MAX_CHUNK_CHARS = 900
 UNREADABLE_CHARACTER = "�"
 
@@ -33,7 +29,7 @@ _PAGE_NUMBER = re.compile(r"^\s*\d{1,4}\s*$")
 
 
 class IngestionError(Exception):
-    """A document file or manifest entry that cannot be loaded."""
+    pass
 
 
 @dataclass(frozen=True)
@@ -63,7 +59,6 @@ def extract_text(path: Path) -> ExtractedText:
 
 
 def extract_text_from_bytes(file_name: str, data: bytes) -> ExtractedText:
-    """Text of a stored or uploaded file; the extension decides how it is read."""
     if _check_supported(file_name) == ".pdf":
         return _extract_pdf(file_name, data)
     try:
@@ -87,14 +82,12 @@ def _extract_pdf(file_name: str, data: bytes) -> ExtractedText:
         raise IngestionError(f"{file_name}: the PDF could not be read") from exc
 
     lines = [line.rstrip() for page in pages for line in page.splitlines() if not _PAGE_NUMBER.match(line)]
-    # PDF lines are layout, not paragraphs: join them, rejoining words hyphenated across a line break.
     text = ""
     for line in lines:
         if text.endswith("-") and line[:1].islower():
             text = text[:-1] + line.lstrip()
         else:
             text = f"{text} {line.strip()}" if text else line.strip()
-    # Glyphs without a Unicode mapping come out as U+FFFD. A space keeps the words around them apart.
     unreadable = text.count(UNREADABLE_CHARACTER)
     text = re.sub(r"[ \t]+", " ", text.replace(UNREADABLE_CHARACTER, " ")).strip()
     if not text:
@@ -103,11 +96,6 @@ def _extract_pdf(file_name: str, data: bytes) -> ExtractedText:
 
 
 def split_into_chunks(text: str, max_chars: int = MAX_CHUNK_CHARS) -> list[str]:
-    """Splits text into chunks along headings, paragraphs and sentences, in that order of preference.
-
-    Markdown headings start a new chunk and are repeated at the top of every chunk of their section,
-    so each chunk still says what it is about when read on its own.
-    """
     chunks: list[str] = []
     heading = ""
     body: list[str] = []
@@ -138,7 +126,6 @@ def split_into_chunks(text: str, max_chars: int = MAX_CHUNK_CHARS) -> list[str]:
 
 
 def _pieces(paragraph: str, limit: int) -> list[str]:
-    """The paragraph itself if it fits, otherwise sentence groups (or word groups) of at most `limit`."""
     if len(paragraph) <= limit:
         return [paragraph]
     pieces: list[str] = []
@@ -205,7 +192,6 @@ def load_manifest(path: Path) -> list[ManifestEntry]:
 
 
 def prepare(entries: list[ManifestEntry]) -> list[PreparedDocument]:
-    """Reads and splits every file before anything is embedded, so a bad file stops the run early."""
     prepared = []
     for entry in entries:
         extracted = extract_text(entry.path)

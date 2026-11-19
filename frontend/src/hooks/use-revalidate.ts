@@ -4,10 +4,6 @@ import { useCallback } from "react";
 import { useSWRConfig } from "swr";
 import { ALL_FACTORIES_KEY } from "./use-factories";
 
-/**
- * Refreshes every cached request whose key starts with one of the given paths,
- * plus the dashboard (its numbers depend on all records).
- */
 export function useRevalidate() {
   const { mutate } = useSWRConfig();
   return useCallback(

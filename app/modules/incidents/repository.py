@@ -37,7 +37,6 @@ class IncidentRepository:
                     SafetyIncident.location.icontains(filters.search, autoescape=True),
                 )
             )
-        # Dates are interpreted as Bangladesh calendar days.
         if filters.date_from:
             query = query.where(SafetyIncident.occurred_at >= datetime.combine(filters.date_from, time(), DHAKA_TZ))
         if filters.date_to:

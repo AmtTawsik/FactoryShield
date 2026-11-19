@@ -8,7 +8,6 @@ from app.modules.users.schemas import UserFilters
 
 
 class UserAdminRepository:
-    """User listing and factory assignments for user management."""
 
     def __init__(self, session: AsyncSession):
         self.session = session
@@ -35,7 +34,6 @@ class UserAdminRepository:
         await self.session.execute(delete(FactoryMembership).where(FactoryMembership.user_id == user_id))
         self.session.add_all(FactoryMembership(user_id=user_id, factory_id=factory_id) for factory_id in factory_ids)
 
-    # Last in the class: a method named `list` would shadow the builtin in later annotations.
     async def list(self, filters: UserFilters, organization_id: int) -> tuple[list[User], int]:
         query = select(User).where(User.organization_id == organization_id)
         if filters.search:

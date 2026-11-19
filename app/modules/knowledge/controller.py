@@ -32,7 +32,6 @@ async def upload_document(
     scope: KnowledgeScope,
     service: KnowledgeServiceDep,
 ):
-    # One byte over the limit is enough to reject the file without reading all of it.
     data = await file.read(MAX_UPLOAD_BYTES + 1)
     return await service.upload(file.filename or "", data, metadata, scope)
 

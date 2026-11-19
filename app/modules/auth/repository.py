@@ -19,7 +19,6 @@ class UserRepository:
         self.session.add(user)
 
     async def get_factory_ids(self, user_id: int, organization_id: int) -> set[int]:
-        """Factories the user is assigned to, within their own organization."""
         result = await self.session.scalars(
             select(FactoryMembership.factory_id)
             .join(Factory, Factory.id == FactoryMembership.factory_id)

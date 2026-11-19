@@ -10,7 +10,6 @@ export type CurrentUser = {
   email: string;
   role: UserRole;
   is_active: boolean;
-  /** null for the platform administrator */
   organization: OrganizationSummary | null;
 };
 
@@ -111,7 +110,6 @@ export type KnowledgeDocument = {
   category: KnowledgeCategory;
   content_status: ContentStatus;
   verified_on: string | null;
-  /** null: shared library document */
   organization_id: number | null;
   factory_id: number | null;
   created_at: string;

@@ -2,6 +2,7 @@ import logging
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.config import get_settings
 from app.core.database import check_database, engine
@@ -25,9 +26,15 @@ def create_app() -> FastAPI:
     settings = get_settings()
     app = FastAPI(title=settings.app_name, lifespan=lifespan)
     register_exception_handlers(app)
+    if settings.cors_origin_list:
+        app.add_middleware(
+            CORSMiddleware,
+            allow_origins=settings.cors_origin_list,
+            allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE"],
+            allow_headers=["Authorization", "Content-Type"],
+        )
     app.include_router(api_router)
 
-    # MCP over streamable HTTP, kept apart from the REST routers.
     mcp_app, app.state.mcp_sessions = create_mcp_http_app()
     app.router.add_route(MCP_PATH, mcp_app, methods=["GET", "POST", "DELETE"], include_in_schema=False)
     return app

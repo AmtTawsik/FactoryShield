@@ -18,17 +18,10 @@ function readExpiry(): number | null {
   return match ? Number(match[1]) : null;
 }
 
-/**
- * Warns before the session ends and, when it has ended, asks for the password in a dialog
- * over the current page. Requests that hit the expired session wait and are retried after
- * signing in, so nothing typed into a form is lost.
- */
 export function SessionGuard({ user }: { user: CurrentUser }) {
   const [expiresAt, setExpiresAt] = useState<number | null>(readExpiry);
   const [now, setNow] = useState(() => Date.now());
-  // A request was rejected because the session ended (set by the API client).
   const [rejected, setRejected] = useState(false);
-  // The user chose "Stay signed in" before the session ended.
   const [renewing, setRenewing] = useState(false);
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -124,7 +117,6 @@ export function SessionGuard({ user }: { user: CurrentUser }) {
       <Dialog
         open={open}
         onClose={() => {
-          // Before expiry the dialog can be dismissed; after it, the user must sign in or sign out.
           if (!ended) setRenewing(false);
         }}
         busy={busy || ended}

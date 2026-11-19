@@ -8,7 +8,7 @@ Role = Literal["system", "user", "assistant", "tool"]
 class ToolCall:
     id: str
     name: str
-    arguments: str  # raw JSON text from the model; validated by the tool before use
+    arguments: str
 
 
 @dataclass(frozen=True)
@@ -23,7 +23,7 @@ class ChatMessage:
 class ToolDefinition:
     name: str
     description: str
-    parameters: dict[str, Any] = field(default_factory=dict)  # JSON Schema of the arguments
+    parameters: dict[str, Any] = field(default_factory=dict)
 
 
 @dataclass(frozen=True)
@@ -33,6 +33,5 @@ class LLMResponse:
 
 
 class LLMProvider(Protocol):
-    """Anything that answers a list of messages, optionally with tool calls. Provider code implements this."""
 
     async def complete(self, messages: list[ChatMessage], tools: tuple[ToolDefinition, ...] = ()) -> LLMResponse: ...

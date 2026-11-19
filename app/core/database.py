@@ -33,7 +33,6 @@ class TimestampMixin(CreatedAtMixin):
 
 
 def string_enum(enum_class: type[StrEnum], name: str) -> Enum:
-    """Stores enum values as varchar with a CHECK constraint instead of a native Postgres enum."""
     return Enum(
         enum_class,
         name=name,

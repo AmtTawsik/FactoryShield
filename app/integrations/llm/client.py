@@ -8,7 +8,6 @@ from app.integrations.llm.schemas import ChatMessage, LLMProvider, LLMResponse, 
 
 
 class LLMClient:
-    """Adds the FactoryShield system prompt and sends the conversation to the provider."""
 
     def __init__(self, provider: LLMProvider, system_prompt: str = SYSTEM_PROMPT):
         self.provider = provider

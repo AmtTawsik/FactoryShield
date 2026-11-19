@@ -1,6 +1,5 @@
 import { Fragment, type ReactNode } from "react";
 
-/** Renders **bold**, *italic* and `code` inside one line of text. */
 function inline(text: string): ReactNode[] {
   const parts: ReactNode[] = [];
   const pattern = /(\*\*[^*]+\*\*|`[^`]+`|\*[^*\s][^*]*\*)/g;

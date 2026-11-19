@@ -1,4 +1,3 @@
-# Build: install dependencies and create the standalone production build
 FROM node:22.21-alpine AS builder
 WORKDIR /app
 ENV NEXT_TELEMETRY_DISABLED=1
@@ -9,7 +8,6 @@ RUN npm ci --no-audit --no-fund
 COPY . .
 RUN npm run build
 
-# Run: only the standalone server and static assets, as a non-root user
 FROM node:22.21-alpine
 WORKDIR /app
 ENV NODE_ENV=production \

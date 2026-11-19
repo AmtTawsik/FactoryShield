@@ -1,5 +1,3 @@
-"""Streamable HTTP transport for the MCP server, served by the FastAPI app at /mcp."""
-
 import logging
 
 from mcp.server.streamable_http_manager import StreamableHTTPASGIApp, StreamableHTTPSessionManager
@@ -20,10 +18,6 @@ MCP_PATH = "/mcp"
 
 
 class BearerAuthMiddleware:
-    """Rejects requests without a valid, active user's token before they reach the MCP transport.
-
-    The tools resolve the same token again for the user's factory scope, so a token is checked on every call.
-    """
 
     def __init__(self, app: ASGIApp):
         self.app = app
@@ -46,11 +40,8 @@ class BearerAuthMiddleware:
 
 
 def create_mcp_http_app() -> tuple[ASGIApp, StreamableHTTPSessionManager]:
-    """The /mcp ASGI app and its session manager, which must run for the app's lifetime."""
     server = create_mcp_server(BearerTokenIdentity())
-    # Stateless JSON mode: every request stands alone and is authenticated on its own, so it works behind
-    # several workers and needs no server-side sessions. DNS-rebinding protection is off because requests
-    # carry a bearer token, not cookies, so a foreign web page cannot make authenticated calls.
+    # stateless: every request is authenticated on its own
     server.streamable_http_app(
         stateless_http=True,
         json_response=True,

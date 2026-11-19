@@ -1,11 +1,3 @@
-"""MCP over stdio for MCP clients on the same machine.
-
-Usage: uv run python -m app.mcp.stdio
-
-The server acts as the user in MCP_STDIO_USER_EMAIL: that user's role and factory scope limit every
-result. stdout carries the protocol, so all messages go to stderr.
-"""
-
 import logging
 import sys
 

@@ -10,7 +10,6 @@ logger = logging.getLogger(__name__)
 
 
 class OpenAICompatibleProvider:
-    """Chat completions over any OpenAI-compatible API (Groq or OpenRouter)."""
 
     def __init__(
         self,
@@ -81,6 +80,6 @@ def _read_tool_calls(message) -> tuple[ToolCall, ...]:
         function = getattr(call, "function", None)
         if function is None:
             continue
-        # Some providers leave the id empty; the tool result must still point to its call.
+        # some providers send an empty id
         calls.append(ToolCall(id=call.id or f"call_{index}", name=function.name, arguments=function.arguments or "{}"))
     return tuple(calls)

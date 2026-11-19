@@ -3,10 +3,6 @@
 import { useState } from "react";
 import { ApiError, errorMessage } from "@/lib/api";
 
-/**
- * Runs a save request for a form: tracks the saving state, the general error message
- * and the per-field messages returned by the API (422 `errors`).
- */
 export function useSubmit() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);

@@ -9,12 +9,10 @@ from app.integrations.embeddings.errors import EmbeddingUnavailableError
 
 logger = logging.getLogger(__name__)
 
-# Size of the vectors returned by intfloat/multilingual-e5-small. The database column uses the same value.
 EMBEDDING_DIMENSIONS = 384
 
 
 class EmbeddingClient:
-    """Turns text into vectors through an OpenAI-compatible /v1/embeddings service (TEI by default)."""
 
     def __init__(
         self,
@@ -75,7 +73,7 @@ def get_embedding_client() -> EmbeddingClient:
     api_key = settings.embedding_api_key.get_secret_value() if settings.embedding_api_key else ""
     return EmbeddingClient(
         base_url=settings.embedding_base_url,
-        # TEI needs no key, but the OpenAI client requires a value.
+        # TEI needs no key, but the client wants one
         api_key=api_key or "not-required",
         model=settings.embedding_model,
         timeout=settings.embedding_timeout_seconds,

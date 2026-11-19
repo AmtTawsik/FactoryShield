@@ -50,7 +50,6 @@ function ChangePassword() {
     toast.success("Password changed. Use the new password next time you sign in.");
   }
 
-  // The API reports a wrong current password as a general message; show it under that field.
   const currentError =
     fieldErrors.current_password ?? (error === "Current password is incorrect" ? error : undefined);
   const generalError = error === "Current password is incorrect" ? null : error;

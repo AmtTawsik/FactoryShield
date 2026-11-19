@@ -107,7 +107,6 @@ class _Tool:
 
 
 class ChatTools:
-    """Runs the model's tool calls against the domain services with the user's factory scope."""
 
     definitions = TOOL_DEFINITIONS
 
@@ -129,7 +128,6 @@ class ChatTools:
         }
 
     async def run(self, call: ToolCall, context: ToolContext) -> str:
-        """Returns the tool result as JSON. Problems are returned as an error the model can read and explain."""
         return json.dumps(await self._run(call, context), default=str, ensure_ascii=False)
 
     async def _run(self, call: ToolCall, context: ToolContext) -> dict:
@@ -150,7 +148,6 @@ class ChatTools:
         try:
             return await tool.handler(arguments, context)
         except NotFoundError as exc:
-            # Same answer for a missing factory and one outside the user's scope.
             return {"error": exc.message}
 
     async def inspection_summary(self, args: InspectionSummaryArgs, context: ToolContext) -> dict:

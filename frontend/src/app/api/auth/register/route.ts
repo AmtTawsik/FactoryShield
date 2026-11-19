@@ -14,7 +14,6 @@ async function post(path: string, body: unknown) {
   return { response, data };
 }
 
-/** Company sign-up: creates the organization and its admin, then signs the admin in. */
 export async function POST(request: NextRequest) {
   const signUp = (await request.json().catch(() => null)) as SignUp | null;
   if (!signUp) return NextResponse.json({ detail: "Invalid request data" }, { status: 422 });

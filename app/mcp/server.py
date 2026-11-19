@@ -1,8 +1,3 @@
-"""FactoryShield MCP server: tools, a resource and a prompt over the application services and database.
-
-The same server definition is used by both transports; only the identity rule differs (see identity.py).
-"""
-
 import logging
 from collections.abc import AsyncIterator, Callable
 from contextlib import asynccontextmanager
@@ -49,7 +44,6 @@ FactoryIdArg = Annotated[int, Field(ge=1, le=MAX_ID, description="Factory ID, as
 
 @dataclass(frozen=True)
 class Access:
-    """A database session with the caller's factory scope and the shared tool handlers."""
 
     session: AsyncSession
     scope: FactoryScope
@@ -67,7 +61,6 @@ def create_mcp_server(identity: Identity) -> MCPServer:
 
     @asynccontextmanager
     async def access(ctx: Context, error: ErrorFactory) -> AsyncIterator[Access]:
-        """Resolves the caller for this call and turns application errors into MCP errors."""
         try:
             async with SessionLocal() as session:
                 auth = AuthService(session, UserRepository(session))

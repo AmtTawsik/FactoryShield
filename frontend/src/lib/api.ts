@@ -9,7 +9,6 @@ export class ApiError extends Error {
     super(message);
   }
 
-  /** Field errors keyed by the last part of the field path, e.g. "body.score" -> "score". */
   get byField(): Record<string, string> {
     const result: Record<string, string> = {};
     for (const error of this.fieldErrors) {
@@ -39,10 +38,6 @@ function goToLogin() {
   window.location.assign(next === "/" ? "/login" : `/login?next=${encodeURIComponent(next)}`);
 }
 
-/**
- * Set by the app shell. Called when the session has ended; resolves `true` once the user has
- * signed in again (the request is then retried), or `false` if they chose to sign out.
- */
 type ReauthHandler = () => Promise<boolean>;
 let reauthHandler: ReauthHandler | null = null;
 let reauthInProgress: Promise<boolean> | null = null;
@@ -95,7 +90,7 @@ export async function api<T>(path: string, { method = "GET", body, query }: Requ
 
   let response = await send();
   if (response.status === 401) {
-    // Session ended: sign in again in place (the page and any typed form data stay), then retry once.
+    // session ended: sign in again, then retry once
     if (!(await reauthenticate())) throw new ApiError(401, "Your session has ended. Please sign in again.");
     response = await send();
     if (response.status === 401) {
@@ -112,7 +107,6 @@ export async function api<T>(path: string, { method = "GET", body, query }: Requ
   return data as T;
 }
 
-/** SWR fetcher: the key is the backend path with its query string. */
 export const fetcher = <T>(path: string) => api<T>(path);
 
 export function errorMessage(error: unknown): string {

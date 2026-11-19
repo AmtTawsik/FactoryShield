@@ -4,7 +4,6 @@ import { Search, X } from "lucide-react";
 import { useEffect, useId, useState } from "react";
 import { cn } from "@/lib/cn";
 
-/** Search box that reports its value after the user stops typing. */
 export function SearchInput({
   value,
   onChange,

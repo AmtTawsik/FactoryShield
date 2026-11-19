@@ -54,7 +54,6 @@ class InspectionFilters(PageParams):
 
 
 class InspectionStats(BaseModel):
-    """Inspection counts and scores for one category and status of a factory."""
 
     model_config = ConfigDict(from_attributes=True)
 

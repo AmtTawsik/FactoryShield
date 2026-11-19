@@ -8,7 +8,6 @@ from app.modules.auth.schemas import check_password
 
 
 class AdminAccountCreate(BaseModel):
-    """An organization admin account created by the platform administrator."""
 
     model_config = ConfigDict(str_strip_whitespace=True)
 

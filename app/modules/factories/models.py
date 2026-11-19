@@ -10,7 +10,6 @@ class Factory(TimestampMixin, Base):
     __table_args__ = (
         CheckConstraint("worker_count > 0", name="worker_count_positive"),
         CheckConstraint("floor_count > 0", name="floor_count_positive"),
-        # Licence numbers are unique within an organization; two customers may record the same factory.
         UniqueConstraint("organization_id", "license_number", name="uq_factories_organization_id_license_number"),
     )
 
@@ -28,7 +27,6 @@ class Factory(TimestampMixin, Base):
 
 
 class FactoryMembership(CreatedAtMixin, Base):
-    """Links a staff user to a factory they may see. Admins see every factory of their organization."""
 
     __tablename__ = "factory_memberships"
 

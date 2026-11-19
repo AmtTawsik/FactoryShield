@@ -12,7 +12,6 @@ DUPLICATE_EMAIL = "An account with this email already exists"
 
 
 class UserService:
-    """User management for admins. Users are deactivated rather than deleted, so their records keep their author."""
 
     def __init__(self, session: AsyncSession, users: UserRepository, admin_users: UserAdminRepository):
         self.session = session
@@ -45,7 +44,6 @@ class UserService:
         if user.id == current.id and (
             changes.get("role", UserRole.ADMIN) != UserRole.ADMIN or changes.get("is_active", True) is False
         ):
-            # Keeps at least the acting admin able to manage users.
             raise InvalidDataError("You cannot remove your own admin role or deactivate your own account")
         password = changes.pop("password", None)
         if password is not None:
@@ -64,7 +62,6 @@ class UserService:
 
     async def _get(self, user_id: int, admin: User) -> User:
         user = await self.users.get_by_id(user_id)
-        # Users of other organizations look the same as missing ones.
         if user is None or user.organization_id != admin.organization_id:
             raise NotFoundError("User not found")
         return user
@@ -80,7 +77,6 @@ class UserService:
         if missing:
             raise InvalidDataError(f"Unknown factory IDs: {', '.join(map(str, missing))}")
 
-    # Last in the class: a method named `list` would shadow the builtin in later annotations.
     async def list(self, filters: UserFilters, admin: User) -> Page[UserDetail]:
         users, total = await self.admin_users.list(filters, admin.organization_id)
         factories = await self.admin_users.factory_ids_by_user([user.id for user in users])

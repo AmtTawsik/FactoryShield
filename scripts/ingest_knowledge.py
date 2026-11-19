@@ -1,12 +1,3 @@
-"""Loads the documents listed in a manifest into the knowledge base used by the chat assistant.
-
-Usage: uv run python -m scripts.ingest_knowledge [--manifest knowledge/manifest.toml]
-
-Each file is read (PDF, TXT or Markdown), split into chunks, embedded with the embedding service and
-stored with its metadata. Safe to run again: documents are matched by their manifest key, unchanged
-documents are skipped and changed ones are re-embedded and replaced.
-"""
-
 import argparse
 import asyncio
 import logging
@@ -25,11 +16,9 @@ from app.modules.knowledge.repository import KnowledgeRepository
 from app.modules.knowledge.service import KnowledgeService
 
 DEFAULT_MANIFEST = Path(__file__).resolve().parents[1] / "knowledge" / "manifest.toml"
-# The manifest documents form the shared library that every organization sees.
 
 
 async def ingest(manifest: Path, embeddings: EmbeddingClient) -> int:
-    """Returns the process exit code: 0 when every document was stored, 1 otherwise."""
     try:
         documents = prepare(load_manifest(manifest))
     except IngestionError as exc:
@@ -72,7 +61,6 @@ async def main() -> int:
     parser = argparse.ArgumentParser(description="Load safety and compliance documents into the knowledge base.")
     parser.add_argument("--manifest", type=Path, default=DEFAULT_MANIFEST, help="path to the manifest TOML file")
     args = parser.parse_args()
-    # pypdf logs font details it cannot parse fully; the extracted text is still checked and reported above.
     logging.getLogger("pypdf").setLevel(logging.ERROR)
     try:
         return await ingest(args.manifest, get_embedding_client())

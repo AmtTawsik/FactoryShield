@@ -38,14 +38,12 @@ class ForbiddenError(AppError):
 
 
 class InvalidDataError(AppError):
-    """Input is well-formed but breaks a business rule, e.g. an action linked to another factory's incident."""
 
     status_code = 422
     message = "Invalid data"
 
 
 def error_response(status_code: int, detail: str, **extra) -> JSONResponse:
-    """Every error body has a `detail` message; validation errors add an `errors` list."""
     headers = {"WWW-Authenticate": "Bearer"} if status_code == 401 else None
     return JSONResponse(status_code=status_code, content={"detail": detail, **extra}, headers=headers)
 
@@ -55,13 +53,12 @@ async def app_error_handler(request: Request, exc: AppError) -> JSONResponse:
 
 
 def _field_name(location: tuple) -> str:
-    # ("body", "email") -> "email"; ("query", "page") -> "page"; ("body",) -> "body"
     parts = [str(part) for part in location[1:]] or [str(part) for part in location]
     return ".".join(parts)
 
 
 async def validation_error_handler(request: Request, exc: RequestValidationError) -> JSONResponse:
-    # Submitted values are not echoed back, so passwords never appear in an error response.
+    # don't echo submitted values back (passwords)
     errors = [
         {"field": _field_name(error["loc"]), "message": error["msg"].removeprefix("Value error, ")}
         for error in exc.errors()
@@ -70,7 +67,6 @@ async def validation_error_handler(request: Request, exc: RequestValidationError
 
 
 async def integrity_error_handler(request: Request, exc: IntegrityError) -> JSONResponse:
-    # Services check duplicates first with a clear message; this covers races and any other constraint.
     logger.warning("Integrity error on %s %s: %s", request.method, request.url.path, exc.orig)
     return error_response(409, "The request conflicts with existing data")
 
