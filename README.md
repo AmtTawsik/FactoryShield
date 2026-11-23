@@ -11,7 +11,7 @@ The system also includes an AI assistant that works with live factory records an
 | | |
 |---|---|
 | Git repository | https://github.com/AmtTawsik/FactoryShield |
-| Video (Google Drive) | Not published yet |
+| Video | https://youtu.be/RMwbtwgyVDw |
 | Live API (Swagger) | https://factoryshield-api-n0ih.onrender.com/docs |
 | Web app | https://factory-shield.vercel.app |
 
